@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <form id="todoForm">
+        <div class="task">
+            <h2>Редактирование задачи</h2>
+        </div>
+        <textarea name="title" id="title" rows="5" placeholder="Введите название задачи" required>{{ todo.title }}</textarea>
+        <textarea name="details" id="details" rows="5" placeholder="Введите описание задачи">{{ todo.details }}</textarea>
+        <label for="completed">Выполнено?</label>
+        <input type="checkbox" name="completed" {% if todo.completed %}checked{% endif %}>
+
+        <label for="tag">Тип задачи:</label>
+        <select name="tag">
+            {% for tag in tags %}
+                <option {% if todo.tag == tag.value %}selected{% endif %} value="{{ tag.value }}">{{ tag.value }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Сохранить</button>
+    </form>
+
+    <script>
+        function validateForm() {
+            const title = document.getElementById('title').value;
+            const details = document.getElementById('details').value;
+
+            if (title.length < 3 || title.length > 200) {
+                alert('Please enter a valid title');
+                return false;
+            }
+
+            if (details.length > 500) {
+                alert('Please enter a valid details');
+                return false;
+            }
+            return true;
+        }
+
+        document.getElementById('todoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            if (validateForm()) {
+                const formData = new FormData(this);
+                const todoData = Object.fromEntries(formData.entries());
+
+                fetch('/todo/edit/{{ todo.id }}/', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(todoData)
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('Успешно:', data);
+                        window.location.href = '/todo/home/';
+                    })
+                    .catch(error => console.error('Ошибка:', error));
+
+                this.reset();
+            }
+        });
+    </script>
+{% endblock content %}

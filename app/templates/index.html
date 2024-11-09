@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <form id="todoForm">
+        <textarea name="title" id="title" rows="5" placeholder="Введите задачу" required></textarea>
+        <textarea name="details" id="details" rows="5" placeholder="Введите описание задачи"></textarea>
+        <label for="tag">Тип задачи:</label>
+        <select name="tag">
+            <option value="учёба">учёба</option>
+            <option value="личное">личное</option>
+            <option value="планы" selected>планы</option>
+        </select>
+        <button type="submit">Добавить</button>
+    </form>
+
+    <br>
+    <h2>Задачи</h2>
+
+    <div>
+        {% for todo in todos %}
+            <div class="task">
+                {% if todo.completed %}
+                    <strike>{{ todo.title }}</strike>
+                {% else %}
+                    {{ todo.title }}
+                {% endif %}
+                <small>
+                    <label for="completed">Выполнено</label>
+                    <input type="checkbox" class="completedTask" todo-id="{{ todo.id }}" todo-title="{{ todo.title }}" todo-details="{{ todo.details }}" todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
+                    <a href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+                    <a class="deleteButton" href="#" todo-id="{{ todo.id }}">Удалить</a>
+                </small>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="pagination">
+        Страницы:
+        {% for i in range(pages) %}
+            <a rel={{ i }} {% if i == page %}style="color:red;"{% endif %}
+                href="/todo/home/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        {% endfor %}
+    </div>
+
+    <script>
+        function validateForm() {
+            const title = document.getElementById('title').value;
+            const details = document.getElementById('details').value;
+
+            if (title.length < 3 || title.length > 200) {
+                alert('Please enter a valid title');
+                return false;
+            }
+
+            if (details.length > 500) {
+                alert('Please enter a valid details');
+                return false;
+            }
+            return true;
+        }
+
+        document.getElementById('todoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            if (validateForm()) {
+                const formData = new FormData(this);
+                const todoData = Object.fromEntries(formData.entries());
+
+                fetch('/todo/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(todoData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
+
+                this.reset();
+            }
+        });
+
+
+        document.querySelectorAll('.deleteButton').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const todoId = this.getAttribute('todo-id');
+
+                fetch(`/todo/delete/${todoId}/`, {
+                    method: 'DELETE'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
+            });
+        });
+
+
+        document.querySelectorAll('.completedTask').forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                const todoId = this.getAttribute('todo-id');
+                const todoTitle = this.getAttribute('todo-title');
+                const todoDetails = this.getAttribute('todo-details');
+                const todoTag = this.getAttribute('todo-tag');
+
+                fetch(`/todo/edit/${todoId}/`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
+            });
+        });
+    </script>
+
+{% endblock content %}
