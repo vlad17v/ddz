@@ -2,17 +2,28 @@
 
 {% block content %}
 
-    <form id="todoForm">
-        <textarea name="title" id="title" rows="5" placeholder="Введите задачу" required></textarea>
-        <textarea name="details" id="details" rows="5" placeholder="Введите описание задачи"></textarea>
-        <label for="tag">Тип задачи:</label>
-        <select name="tag">
-            <option value="учёба">учёба</option>
-            <option value="личное">личное</option>
-            <option value="планы" selected>планы</option>
-        </select>
-        <button type="submit">Добавить</button>
-    </form>
+<form id="todoForm" class="d-flex flex-column gap-2">
+  <div class="form-floating">
+    <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
+    <label for="title">Введите задачу</label>
+  </div>
+  <div class="form-floating">
+    <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details" style="height: 100px"></textarea>
+    <label for="details">Введите описание задач</label>
+  </div>
+
+  <div class="form-floating">
+    <select class="form-select" name="tag" id="tag">
+      <option>Тип задачи:</option>
+      <option value="учёба">учёба</option>
+      <option value="личное">личное</option>
+      <option selected value="планы">планы</option>
+    </select>
+    <label for="tag">Тип задачи:</label>
+  </div>
+
+  <button type="submit" class="btn btn-success">Добавить</button>
+</form>
 
     <br>
     <h2>Задачи</h2>
