@@ -57,85 +57,66 @@
     </ul>
 </nav>
 
-    <script>
-        function validateForm() {
-            const title = document.getElementById('title').value;
-            const details = document.getElementById('details').value;
+<script>
+    document.getElementById('todoForm').addEventListener('submit', function (e) {
+        e.preventDefault();
 
-            if (title.length < 3 || title.length > 200) {
-                alert('Please enter a valid title');
-                return false;
-            }
+        const formData = new FormData(this);
+        const todoData = Object.fromEntries(formData.entries());
 
-            if (details.length > 500) {
-                alert('Please enter a valid details');
-                return false;
-            }
-            return true;
-        }
+        fetch('/todo/add/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(todoData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log('Успешно:', data);
+            window.location.href = '/todo/home/';
+        })
+        .catch(error => console.error('Ошибка:', error));
 
-        document.getElementById('todoForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+        this.reset();
+    });
 
-            if (validateForm()) {
-                const formData = new FormData(this);
-                const todoData = Object.fromEntries(formData.entries());
 
-                fetch('/todo/add/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(todoData)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
+    document.querySelectorAll('.deleteButton').forEach(button => {
+        button.addEventListener('click', function (e) {
+            const todoId = this.dataset.todoId;
 
-                this.reset();
-            }
+            fetch(`/todo/delete/${todoId}/`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
         });
+    });
 
 
-        document.querySelectorAll('.deleteButton').forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const todoId = this.getAttribute('todo-id');
+    document.querySelectorAll('.completedTask').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const todoId = this.dataset.todoId;
+            const todoTitle = this.dataset.todoTitle;
+            const todoDetails = this.dataset.todoDetails;
+            const todoTag = this.dataset.todoTag;
 
-                fetch(`/todo/delete/${todoId}/`, {
-                    method: 'DELETE'
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
-            });
+            fetch(`/todo/edit/${todoId}/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
         });
-
-
-        document.querySelectorAll('.completedTask').forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
-                const todoId = this.getAttribute('todo-id');
-                const todoTitle = this.getAttribute('todo-title');
-                const todoDetails = this.getAttribute('todo-details');
-                const todoTag = this.getAttribute('todo-tag');
-
-                fetch(`/todo/edit/${todoId}/`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
-            });
-        });
-    </script>
+    });
+</script>
 
 {% endblock content %}
