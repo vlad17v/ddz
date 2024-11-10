@@ -2,126 +2,121 @@
 
 {% block content %}
 
-    <form id="todoForm">
-        <textarea name="title" id="title" rows="5" placeholder="Введите задачу" required></textarea>
-        <textarea name="details" id="details" rows="5" placeholder="Введите описание задачи"></textarea>
-        <label for="tag">Тип задачи:</label>
-        <select name="tag">
+<form id="todoForm" class="d-flex flex-column gap-2">
+    <div class="form-floating">
+        <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
+        <label for="title">Введите задачу</label>
+    </div>
+    <div class="form-floating">
+        <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details" style="height: 100px"></textarea>
+        <label for="details">Введите описание задач</label>
+    </div>
+
+    <div class="form-floating">
+        <select class="form-select" name="tag" id="tag">
+            <option>Тип задачи:</option>
             <option value="учёба">учёба</option>
             <option value="личное">личное</option>
-            <option value="планы" selected>планы</option>
+            <option selected value="планы">планы</option>
         </select>
-        <button type="submit">Добавить</button>
-    </form>
-
-    <br>
-    <h2>Задачи</h2>
-
-    <div>
-        {% for todo in todos %}
-            <div class="task">
-                {% if todo.completed %}
-                    <strike>{{ todo.title }}</strike>
-                {% else %}
-                    {{ todo.title }}
-                {% endif %}
-                <small>
-                    <label for="completed">Выполнено</label>
-                    <input type="checkbox" class="completedTask" todo-id="{{ todo.id }}" todo-title="{{ todo.title }}" todo-details="{{ todo.details }}" todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
-                    <a href="/todo/edit/{{ todo.id }}/">Редактировать</a>
-                    <a class="deleteButton" href="#" todo-id="{{ todo.id }}">Удалить</a>
-                </small>
-            </div>
-        {% endfor %}
+        <label for="tag">Тип задачи:</label>
     </div>
 
-    <div class="pagination">
-        Страницы:
+    <button type="submit" class="btn btn-success">Добавить</button>
+</form>
+
+<h2 class="h2">Задачи</h2>
+
+<ul class="list-group">
+    {% for todo in todos %}
+    <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+        {% if todo.completed %}
+        <strike>{{ todo.title }}</strike>
+        {% else %}
+        <span>{{ todo.title }}</span>
+        {% endif %}
+        <div class="form-check form-switch ms-auto">
+            <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
+            <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"  data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
+            data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+            <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+<nav>
+    <ul class="pagination">
         {% for i in range(pages) %}
-            <a rel={{ i }} {% if i == page %}style="color:red;"{% endif %}
-                href="/todo/home/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        <li class="page-item {% if i==page %}active{% endif %}">
+            <a class="page-link" href="/todo/home/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        </li>
         {% endfor %}
-    </div>
+    </ul>
+</nav>
 
-    <script>
-        function validateForm() {
-            const title = document.getElementById('title').value;
-            const details = document.getElementById('details').value;
+<script>
+    document.getElementById('todoForm').addEventListener('submit', function (e) {
+        e.preventDefault();
 
-            if (title.length < 3 || title.length > 200) {
-                alert('Please enter a valid title');
-                return false;
-            }
+        const formData = new FormData(this);
+        const todoData = Object.fromEntries(formData.entries());
 
-            if (details.length > 500) {
-                alert('Please enter a valid details');
-                return false;
-            }
-            return true;
-        }
+        fetch('/todo/add/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(todoData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log('Успешно:', data);
+            window.location.href = '/todo/home/';
+        })
+        .catch(error => console.error('Ошибка:', error));
 
-        document.getElementById('todoForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+        this.reset();
+    });
 
-            if (validateForm()) {
-                const formData = new FormData(this);
-                const todoData = Object.fromEntries(formData.entries());
 
-                fetch('/todo/add/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(todoData)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
+    document.querySelectorAll('.deleteButton').forEach(button => {
+        button.addEventListener('click', function (e) {
+            const todoId = this.dataset.todoId;
 
-                this.reset();
-            }
+            fetch(`/todo/delete/${todoId}/`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
         });
+    });
 
 
-        document.querySelectorAll('.deleteButton').forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const todoId = this.getAttribute('todo-id');
+    document.querySelectorAll('.completedTask').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const todoId = this.dataset.todoId;
+            const todoTitle = this.dataset.todoTitle;
+            const todoDetails = this.dataset.todoDetails;
+            const todoTag = this.dataset.todoTag;
 
-                fetch(`/todo/delete/${todoId}/`, {
-                    method: 'DELETE'
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
-            });
+            fetch(`/todo/edit/${todoId}/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
         });
-
-
-        document.querySelectorAll('.completedTask').forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
-                const todoId = this.getAttribute('todo-id');
-                const todoTitle = this.getAttribute('todo-title');
-                const todoDetails = this.getAttribute('todo-details');
-                const todoTag = this.getAttribute('todo-tag');
-
-                fetch(`/todo/edit/${todoId}/`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
-            });
-        });
-    </script>
+    });
+</script>
 
 {% endblock content %}
