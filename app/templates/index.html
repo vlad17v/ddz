@@ -3,58 +3,59 @@
 {% block content %}
 
 <form id="todoForm" class="d-flex flex-column gap-2">
-  <div class="form-floating">
-    <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
-    <label for="title">Введите задачу</label>
-  </div>
-  <div class="form-floating">
-    <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details" style="height: 100px"></textarea>
-    <label for="details">Введите описание задач</label>
-  </div>
+    <div class="form-floating">
+        <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
+        <label for="title">Введите задачу</label>
+    </div>
+    <div class="form-floating">
+        <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details" style="height: 100px"></textarea>
+        <label for="details">Введите описание задач</label>
+    </div>
 
-  <div class="form-floating">
-    <select class="form-select" name="tag" id="tag">
-      <option>Тип задачи:</option>
-      <option value="учёба">учёба</option>
-      <option value="личное">личное</option>
-      <option selected value="планы">планы</option>
-    </select>
-    <label for="tag">Тип задачи:</label>
-  </div>
+    <div class="form-floating">
+        <select class="form-select" name="tag" id="tag">
+            <option>Тип задачи:</option>
+            <option value="учёба">учёба</option>
+            <option value="личное">личное</option>
+            <option selected value="планы">планы</option>
+        </select>
+        <label for="tag">Тип задачи:</label>
+    </div>
 
-  <button type="submit" class="btn btn-success">Добавить</button>
+    <button type="submit" class="btn btn-success">Добавить</button>
 </form>
 
-    <h2 class="h2">Задачи</h2>
+<h2 class="h2">Задачи</h2>
 
 <ul class="list-group">
-  {% for todo in todos %}
-  <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
-    {% if todo.completed %}
-    <strike>{{ todo.title }}</strike>
-    {% else %}
-    <span>{{ todo.title }}</span>
-    {% endif %}
-    <div class="form-check form-switch ms-auto">
-      <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
-      <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"  data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
-      data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
-    </div>
-    <div class="btn-group">
-      <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
-      <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
-    </div>
-  </li>
-  {% endfor %}
+    {% for todo in todos %}
+    <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+        {% if todo.completed %}
+        <strike>{{ todo.title }}</strike>
+        {% else %}
+        <span>{{ todo.title }}</span>
+        {% endif %}
+        <div class="form-check form-switch ms-auto">
+            <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
+            <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"  data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
+            data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+            <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
+        </div>
+    </li>
+    {% endfor %}
 </ul>
-
-    <div class="pagination">
-        Страницы:
+<nav>
+    <ul class="pagination">
         {% for i in range(pages) %}
-            <a rel={{ i }} {% if i == page %}style="color:red;"{% endif %}
-                href="/todo/home/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        <li class="page-item {% if i==page %}active{% endif %}">
+            <a class="page-link" href="/todo/home/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        </li>
         {% endfor %}
-    </div>
+    </ul>
+</nav>
 
     <script>
         function validateForm() {
