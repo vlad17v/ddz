@@ -25,26 +25,28 @@
   <button type="submit" class="btn btn-success">Добавить</button>
 </form>
 
-    <br>
-    <h2>Задачи</h2>
+    <h2 class="h2">Задачи</h2>
 
-    <div>
-        {% for todo in todos %}
-            <div class="task">
-                {% if todo.completed %}
-                    <strike>{{ todo.title }}</strike>
-                {% else %}
-                    {{ todo.title }}
-                {% endif %}
-                <small>
-                    <label for="completed">Выполнено</label>
-                    <input type="checkbox" class="completedTask" todo-id="{{ todo.id }}" todo-title="{{ todo.title }}" todo-details="{{ todo.details }}" todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
-                    <a href="/todo/edit/{{ todo.id }}/">Редактировать</a>
-                    <a class="deleteButton" href="#" todo-id="{{ todo.id }}">Удалить</a>
-                </small>
-            </div>
-        {% endfor %}
+<ul class="list-group">
+  {% for todo in todos %}
+  <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+    {% if todo.completed %}
+    <strike>{{ todo.title }}</strike>
+    {% else %}
+    <span>{{ todo.title }}</span>
+    {% endif %}
+    <div class="form-check form-switch ms-auto">
+      <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
+      <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"  data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
+      data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
     </div>
+    <div class="btn-group">
+      <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+      <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
 
     <div class="pagination">
         Страницы:
