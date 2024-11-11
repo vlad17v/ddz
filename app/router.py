@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import matplotlib.pyplot as plt
+import seaborn as sb
 
 from app.database import get_async_session
 from app.repository import TodoRepository
@@ -125,7 +126,7 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
     """Visualize todos as a treemap by tags
     """
     todo_repo = TodoRepository(session)
-    todos = await todo_repo.get_todos(limit=1000, skip=0)  # Get all todos for visualization
+    todos = await todo_repo.get_todos(limit=1000, skip=0)
 
     tag_counts = {tag.value: 0 for tag in Tags}
     for todo in todos:
@@ -139,7 +140,8 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
         plt.axis('off')
     else:
         fig, ax = plt.subplots()
-        squarify.plot(sizes=list(tag_counts.values()), label=list(tag_counts.keys()), alpha=.8)
+        squarify.plot(sizes=list(tag_counts.values()), label=list(tag_counts.keys()),  pad = 0.2, text_kwargs = {'fontsize': 10, 'color': 'white'},
+              color = sb.color_palette("rocket", len(tag_counts)))
         plt.axis('off')
 
     buf = io.BytesIO()

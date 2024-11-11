@@ -5,9 +5,9 @@ from pydantic import Field
 
 
 class Tags(str, Enum):
-    study = "учёба"
-    personal = "личное"
-    plans = "планы"
+    study = "Учёба"
+    personal = "Личное"
+    plans = "Планы"
 
 
 class Todo(BaseModel):
@@ -23,7 +23,7 @@ class Todo(BaseModel):
                     "title": "Задача",
                     "details": "Описание задачи",
                     "completed": False,
-                    "tag": "планы"
+                    "tag": "Планы"
                 }
             ]
         }
