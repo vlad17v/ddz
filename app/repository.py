@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy import insert
@@ -28,6 +30,7 @@ class TodoRepository:
         return data
 
     async def add_todo(self, data: dict):
+        data['created_at'] = datetime.utcnow()
         await self._session.execute(
             insert(Todo).values(**data)
         )
@@ -40,6 +43,10 @@ class TodoRepository:
         return data
 
     async def update_todo(self, todo_id: int, data: dict):
+        if data.get('completed'):
+            data['completed_at'] = datetime.utcnow()
+        else:
+            data['completed_at'] = None
         await self._session.execute(
             update(Todo).where(Todo.id == todo_id).values(**data)
         )

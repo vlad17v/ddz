@@ -1,6 +1,7 @@
 import math
 import io
 import squarify
+from datetime import datetime
 
 from loguru import logger
 from fastapi import APIRouter
@@ -95,6 +96,10 @@ async def edit_todo(todo_id: int, todo_change: Todo,
         )
 
     logger.info(f"Editting todo: {todo}")
+
+    if todo_change.completed:
+        todo_change.completed_at = datetime.utcnow()
+
     await todo_repo.update_todo(todo_id, todo_change.model_dump())
     return {
         "status": "success",
