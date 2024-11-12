@@ -2,6 +2,7 @@
 
 {% block content %}
 
+
 <form id="todoForm" class="d-flex flex-column gap-2">
     <div class="form-floating">
         <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
@@ -15,9 +16,9 @@
     <div class="form-floating">
         <select class="form-select" name="tag" id="tag">
             <option>Тип задачи:</option>
-            <option value="учёба">учёба</option>
-            <option value="личное">личное</option>
-            <option selected value="планы">планы</option>
+            <option value="Учёба">Учёба</option>
+            <option value="Личное">Личное</option>
+            <option selected value="Планы">Планы</option>
         </select>
         <label for="tag">Тип задачи:</label>
     </div>

@@ -1,4 +1,6 @@
 import math
+import io
+import squarify
 from datetime import datetime
 
 from loguru import logger
@@ -8,7 +10,10 @@ from fastapi import Depends
 from fastapi import status
 from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+import matplotlib.pyplot as plt
+import seaborn as sb
 
 from app.database import get_async_session
 from app.repository import TodoRepository
@@ -120,3 +125,32 @@ async def delete_todo(todo_id: int, session: AsyncSession = Depends(get_async_se
         "status": "success",
         "details": "Todo deleted"
     }
+
+@todo_router.get("/visualize/", status_code=status.HTTP_200_OK)
+async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
+    """Visualize todos as a treemap by tags
+    """
+    todo_repo = TodoRepository(session)
+    todos = await todo_repo.get_todos(limit=1000, skip=0)
+
+    tag_counts = {tag.value: 0 for tag in Tags}
+    for todo in todos:
+        tag_counts[todo.tag] += 1
+
+    tag_counts = {tag: count for tag, count in tag_counts.items() if count > 0}
+
+    if not tag_counts:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No todos available", ha="center", va="center", fontsize=18)
+        plt.axis('off')
+    else:
+        fig, ax = plt.subplots()
+        squarify.plot(sizes=list(tag_counts.values()), label=list(tag_counts.keys()),  pad = 0.2, text_kwargs = {'fontsize': 10, 'color': 'white'},
+              color = sb.color_palette("rocket", len(tag_counts)))
+        plt.axis('off')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    return StreamingResponse(buf, media_type="image/png")

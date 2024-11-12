@@ -6,3 +6,6 @@ python-multipart==0.0.10
 SQLAlchemy==2.0.35
 uvicorn==0.31.0
 aiosqlite==0.20.0
+matplotlib==3.9.2
+squarify==0.4.3
+seaborn==0.13.2
