@@ -6,7 +6,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
 
-from app.schemas import Tags
+from app.schemas import Tags, TodoSource
 
 class Base(DeclarativeBase):
     pass
@@ -22,6 +22,7 @@ class Todo(Base):
     tag: Mapped[str] = mapped_column(default=Tags.plans, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source: Mapped[TodoSource] = mapped_column(nullable=False, default=TodoSource.created)
 
     def __repr__(self):
         return f'<Todo {self.id}>'

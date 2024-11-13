@@ -23,6 +23,7 @@ from app.database import get_async_session
 from app.repository import TodoRepository
 from app.schemas import Todo
 from app.schemas import Tags
+from app.schemas import TodoSource
 
 
 todo_router = APIRouter(
@@ -55,7 +56,6 @@ async def get_home(request: Request, session: AsyncSession = Depends(get_async_s
 
     return templates.TemplateResponse("index.html",
         {"request": request, "todos": todos, "page": skip, "pages": pages, "limit": limit})
-
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
 async def add_todo(todo: Todo, session: AsyncSession = Depends(get_async_session)):
     """Add new todo
@@ -161,7 +161,7 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
 
 
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
-async def generate_todos(count: int = 20, session: AsyncSession = Depends(get_async_session)):
+async def generate_todos(count: int = 20):
     """Generate a number of todos by calling a bash script."""
     logger.info(f"Generating {count} todos")
     script_directory = os.path.dirname(__file__)
