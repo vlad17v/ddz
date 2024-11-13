@@ -163,6 +163,7 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
 async def generate_todos(count: int = 20, session: AsyncSession = Depends(get_async_session)):
     """Generate a number of todos by calling a bash script."""
+    logger.info(f"Generating {count} todos")
     script_directory = os.path.dirname(__file__)
     script_path = os.path.join(script_directory, "../scripts/generate.sh")
 
@@ -175,6 +176,11 @@ async def generate_todos(count: int = 20, session: AsyncSession = Depends(get_as
 
         stdout, stderr = await process.communicate()
 
+        if process.returncode != 0:
+            logger.error(f"Error during execution: {stderr.decode()}")
+            raise HTTPException(status_code=500, detail=f"Error during execution: {stderr.decode()}")
+
+        logger.info("Todos generated successfully")
         return {
             "status": "success",
             "details": stdout.decode()
