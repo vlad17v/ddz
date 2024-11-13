@@ -1,3 +1,4 @@
+import base64
 import math
 import io
 import squarify
@@ -34,12 +35,17 @@ logger = logger.opt(colors=True)
 # pylint: enable=invalid-name
 
 @todo_router.get("/home/", status_code=status.HTTP_200_OK)
-async def get_home(request: Request, session: AsyncSession = Depends(get_async_session),
-                   limit: int = 10, skip: int = 0):
+async def get_home(request: Request):
     """Main page with todo list
     """
     logger.info("In home")
 
+    return templates.TemplateResponse("index.html",
+        {"request": request})
+
+@todo_router.get("/list/", status_code=status.HTTP_200_OK)
+async def get_todos(request: Request, session: AsyncSession = Depends(get_async_session),
+                   limit: int = 10, skip: int = 0):
     todo_repo = TodoRepository(session)
     count = await todo_repo.get_count_todos()
     pages = math.ceil(count / limit)
@@ -49,9 +55,8 @@ async def get_home(request: Request, session: AsyncSession = Depends(get_async_s
 
     todos = await todo_repo.get_todos(limit, skip)
 
-    return templates.TemplateResponse("index.html",
-                                      {"request": request, "todos": todos, "page": skip, "pages": pages,
-                                       "limit": limit})
+    return templates.TemplateResponse("todos.html",
+        {"request": request, "todos": todos, "page": skip, "pages": pages, "limit": limit})
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
@@ -133,7 +138,7 @@ async def delete_todo(todo_id: int, session: AsyncSession = Depends(get_async_se
 
 
 @todo_router.get("/visualize/", status_code=status.HTTP_200_OK)
-async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
+async def visualize_todos(request: Request, session: AsyncSession = Depends(get_async_session)):
     """Visualize todos as a treemap by tags
     """
     todo_repo = TodoRepository(session)
@@ -159,8 +164,10 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
+    plt.close(fig)
 
-    return StreamingResponse(buf, media_type="image/png")
+    image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+    return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
 
 
 @todo_router.get("/export/", status_code=status.HTTP_200_OK)

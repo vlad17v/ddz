@@ -47,12 +47,12 @@
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(todoData)
         })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
+        .then(res => res.json())
+        .then(data => {
+            console.log('Успешно:', data);
+            window.location.href = '/todo/list/';
+        })
+        .catch(error => console.error('Ошибка:', error));
 
         this.reset();
 
