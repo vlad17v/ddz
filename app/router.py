@@ -2,6 +2,10 @@ import math
 import io
 import squarify
 from datetime import datetime
+import subprocess
+import os
+
+import asyncio
 
 from loguru import logger
 from fastapi import APIRouter
@@ -154,3 +158,5 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
     buf.seek(0)
 
     return StreamingResponse(buf, media_type="image/png")
+
+
