@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="h2">Задачи</h2>
+
+<ul class="list-group">
+    {% for todo in todos %}
+    <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+        {% if todo.completed %}
+        <strike>{{ todo.title }}</strike>
+        {% else %}
+        <span>{{ todo.title }}</span>
+        {% endif %}
+        <div class="form-check form-switch ms-auto">
+            <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
+            <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"  data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
+            data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed %}checked{% endif %}>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+            <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+<nav>
+    <ul class="pagination">
+        {% for i in range(pages) %}
+        <li class="page-item {% if i==page %}active{% endif %}">
+            <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+
+<script>
+
+    document.querySelectorAll('.deleteButton').forEach(button => {
+        button.addEventListener('click', function (e) {
+            const todoId = this.dataset.todoId;
+
+            fetch(`/todo/delete/${todoId}/`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/list/';
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+    });
+
+
+    document.querySelectorAll('.completedTask').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const todoId = this.dataset.todoId;
+            const todoTitle = this.dataset.todoTitle;
+            const todoDetails = this.dataset.todoDetails;
+            const todoTag = this.dataset.todoTag;
+
+            fetch(`/todo/edit/${todoId}/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/list/';
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+    });
+</script>
+
+{% endblock content %}
