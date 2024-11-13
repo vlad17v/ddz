@@ -5,11 +5,13 @@
 
 <form id="todoForm" class="d-flex flex-column gap-2">
     <div class="form-floating">
-        <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"  placeholder="Введите задачу" required>
+        <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"
+               placeholder="Введите задачу" required>
         <label for="title">Введите задачу</label>
     </div>
     <div class="form-floating">
-        <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details" style="height: 100px"></textarea>
+        <textarea maxlength="500" class="form-control" placeholder="Введите описание задач" name="details" id="details"
+                  style="height: 100px"></textarea>
         <label for="details">Введите описание задач</label>
     </div>
 
@@ -35,15 +37,15 @@
 
         fetch('/todo/add/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(todoData)
         })
-        .then(res => res.json())
-        .then(data => {
-            console.log('Успешно:', data);
-            window.location.href = '/todo/home/';
-        })
-        .catch(error => console.error('Ошибка:', error));
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
 
         this.reset();
     });
