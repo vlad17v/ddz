@@ -160,3 +160,25 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
     return StreamingResponse(buf, media_type="image/png")
 
 
+@todo_router.get("/generate/", status_code=status.HTTP_200_OK)
+async def generate_todos(count: int = 20, session: AsyncSession = Depends(get_async_session)):
+    """Generate a number of todos by calling a bash script."""
+    script_directory = os.path.dirname(__file__)
+    script_path = os.path.join(script_directory, "../scripts/generate.sh")
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "bash", script_path, str(count),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        return {
+            "status": "success",
+            "details": stdout.decode()
+        }
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating todos")
