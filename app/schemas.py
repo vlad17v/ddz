@@ -32,7 +32,7 @@ class Todo(BaseModel):
                     "tag": "Планы",
                     "created_at": "2023-10-01T00:00:00Z",
                     "completed_at": None,
-                    "source": "created"
+                    "source": "Созданный"
                 }
             ]
         }

@@ -30,6 +30,6 @@ for ((i=1; i <= COUNT; i++)); do
             "title": "'"${title}"'",
             "details": "'"${detail}"'",
             "tag": "'"${tag}"'",
-            "source": "generated"
+            "source": "Сгенерированный"
           }'
 done
