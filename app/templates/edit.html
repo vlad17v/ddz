@@ -6,25 +6,27 @@
 
     <div class="form-floating">
         <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"
-        placeholder="Введите название задачи" required value="{{todo.title}}">
+               placeholder="Введите название задачи" required value="{{todo.title}}">
         <label for="title">Введите название задачи</label>
     </div>
     <div class="form-floating">
-        <textarea class="form-control" maxlength="500" placeholder="Введите описание задачи" name="details" id="details" style="height: 100px">{{todo.details}}</textarea>
+        <textarea class="form-control" maxlength="500" placeholder="Введите описание задачи" name="details" id="details"
+                  style="height: 100px">{{todo.details}}</textarea>
         <label for="details">Введите описание задачи</label>
     </div>
 
     <div class="form-check form-switch">
         <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
-        <input {% if todo.completed %}checked{% endif %} class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" name="completed" >
+        <input {% if todo.completed %}checked{% endif %} class="form-check-input" type="checkbox"
+               id="flexSwitchCheckChecked" name="completed">
     </div>
 
 
     <div class="form-floating">
         <select class="form-select" name="tag" id="tag" aria-label="Floating label select example">
-        {% for tag in tags %}
+            {% for tag in tags %}
             <option {% if todo.tag==tag.value %}selected{% endif %} value="{{ tag.value }}">{{ tag.value }}</option>
-        {% endfor %}
+            {% endfor %}
         </select>
         <label for="tag">Тип задачи:</label>
     </div>
@@ -42,15 +44,15 @@
 
         fetch('/todo/edit/{{ todo.id }}/', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(todoData)
         })
-        .then(res => res.json())
-        .then(data => {
-            console.log('Успешно:', data);
-            window.location.href = '/todo/home/';
-        })
-        .catch(error => console.error('Ошибка:', error));
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
 
         this.reset();
 

@@ -2,36 +2,36 @@
 <html lang="ru">
 
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ToDo App</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap.min.css') }}">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDo App</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap.min.css') }}">
 </head>
 
 <body class="container">
-  <main class="d-flex flex-column gap-3">
+<main class="d-flex flex-column gap-3">
     <h1 class="h1">ToDo - список задач</h1>
 
     {% block content %}
 
     {% endblock content %}
-  </main>
+</main>
 
-  <footer>
+<footer>
     <nav class="navbar navbar-expand">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link" href="">Список дел</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="">Экспорт</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="">Визуализация</a>
-        </li>
-      </ul>
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/home/">Список дел</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/export/">Экспорт</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/visualize/">Визуализация</a>
+            </li>
+        </ul>
     </nav>
-  </footer>
+</footer>
 </body>
 </html>

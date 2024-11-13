@@ -14,7 +14,7 @@ DB_URL = f"sqlite+aiosqlite:///{DB_PATH}/db.sqlite"
 
 engine = create_async_engine(DB_URL, connect_args={"check_same_thread": False})
 # for logging all SQL-queries
-#ENGINE = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=True)
+# ENGINE = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=True)
 async_session_maker = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -27,6 +27,7 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+
 async def get_async_session():
     async with async_session_maker() as session:
         try:
@@ -35,6 +36,7 @@ async def get_async_session():
         except Exception as exp:
             await session.rollback()
             raise exp
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -3,10 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+
 class Tags(str, Enum):
     study = "Учёба"
     personal = "Личное"
     plans = "Планы"
+
 
 class Todo(BaseModel):
     title: str = Field(min_length=3, max_length=200, default="Задача")

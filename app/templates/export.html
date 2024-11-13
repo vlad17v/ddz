@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <h3>Импорт</h3>
+    <div class="mb-3">
+        <form action="" method="post" enctype="multipart/form-data">
+
+            <label for="file" class="form-label">Выберите файл для импорта (формат .xlsx):</label>
+            <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+            <button type="submit" class="btn btn-primary mt-3">Импортировать</button>
+        </form>
+    </div>
+    <h3>Экспорт</h3>
+    <div>
+        <form action="" method="post">
+            <button type="submit" class="btn btn-success">Экспортировать все тудушки</button>
+        </form>
+    </div>
+</div>
+
+{% endblock content %}
