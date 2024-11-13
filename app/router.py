@@ -1,3 +1,4 @@
+import base64
 import math
 import io
 import squarify
@@ -132,7 +133,7 @@ async def delete_todo(todo_id: int, session: AsyncSession = Depends(get_async_se
     }
 
 @todo_router.get("/visualize/", status_code=status.HTTP_200_OK)
-async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
+async def visualize_todos(request: Request, session: AsyncSession = Depends(get_async_session)):
     """Visualize todos as a treemap by tags
     """
     todo_repo = TodoRepository(session)
@@ -157,5 +158,7 @@ async def visualize_todos(session: AsyncSession = Depends(get_async_session)):
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
+    plt.close(fig)
 
-    return StreamingResponse(buf, media_type="image/png")
+    image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+    return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
