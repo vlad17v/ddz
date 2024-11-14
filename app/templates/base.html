@@ -10,8 +10,9 @@
 </head>
 
 <body class="container">
-  <main class="d-flex flex-column gap-3">
-    <h1 class="h1"><a href="/todo/home/" style="cursor: pointer; color: black; text-decoration: none;">ToDo</a> - список задач</h1>
+<main class="d-flex flex-column gap-3">
+    <h1 class="h1"><a href="/todo/home/" style="cursor: pointer; color: black; text-decoration: none;">ToDo</a> - список
+        задач</h1>
 
     {% block content %}
 
@@ -20,20 +21,23 @@
 
 <footer>
     <nav class="navbar navbar-expand">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link" href="/todo/home/">Главная</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/todo/list/">Список дел</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="">Экспорт</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/todo/visualize/">Визуализация</a>
-        </li>
-      </ul>
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/home/">Главная</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/list/">Список дел</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/export/">Экспорт</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/visualize/">Визуализация</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/todo/generate/">Сгенерировать 20 todos</a>
+            </li>
+        </ul>
     </nav>
 </footer>
 </body>

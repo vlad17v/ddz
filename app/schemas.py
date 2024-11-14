@@ -3,10 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+
 class TodoSource(Enum):
     created = "Созданный"
     generated = "Сгенерированный"
     exported = "Экспортированный"
+
 
 class Tags(str, Enum):
     study = "Учёба"

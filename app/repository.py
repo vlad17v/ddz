@@ -29,11 +29,21 @@ class TodoRepository:
         data = find_todos.scalars().all()
         return data
 
+    async def get_all_todos(self):
+        find_todos = await self._session.execute(
+            select(Todo).order_by(desc(Todo.id))
+        )
+        data = find_todos.scalars().all()
+        return data
+
     async def add_todo(self, data: dict):
         data['created_at'] = datetime.utcnow()
         await self._session.execute(
             insert(Todo).values(**data)
         )
+
+    async def add_todo_object(self, todo: Todo):
+        self._session.add(todo)
 
     async def get_todo(self, todo_id: int):
         find_todo = await self._session.execute(

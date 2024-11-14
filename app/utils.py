@@ -1,9 +1,11 @@
 import os
 
+import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 
 from app.models import Todo
+from datetime import datetime
 
 def export_todos(todos: list[Todo]):
     if not os.path.exists("data"):
@@ -30,3 +32,34 @@ def export_todos(todos: list[Todo]):
                    todo.completed_at])
 
     wb.save("data/todos.xlsx")
+
+
+def import_todos(file_path) -> list[Todo]:
+    workbook = openpyxl.load_workbook(file_path)
+    sheet = workbook.active
+
+    todos = []
+
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        id, title, details, completed, tag, created_at, completed_at = row
+
+        if not completed and completed_at is not None:
+            print(f"Ошибка: Задача с ID {id} не завершена, но дата выполнения указана.")
+            continue
+
+        created_at = created_at if isinstance(created_at, datetime) else None
+        completed_at = completed_at if isinstance(completed_at, datetime) else None
+
+        todo = Todo()
+        todo.id = id
+        todo.title = title
+        todo.details = details
+        todo.completed = bool(completed)
+        todo.tag = tag
+        todo.created_at = created_at
+        todo.completed_at = completed_at
+        todos.append(todo)
+
+    workbook.close()
+
+    return todos
