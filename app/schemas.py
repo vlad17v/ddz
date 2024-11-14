@@ -13,6 +13,7 @@ class Tags(str, Enum):
     personal = "Личное"
     plans = "Планы"
 
+
 class Todo(BaseModel):
     title: str = Field(min_length=3, max_length=200, default="Задача")
     details: str = Field(max_length=500, default="Описание задачи")

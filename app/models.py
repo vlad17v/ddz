@@ -8,8 +8,10 @@ from sqlalchemy.sql import func
 
 from app.schemas import Tags, TodoSource
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class Todo(Base):
     """Todo model
