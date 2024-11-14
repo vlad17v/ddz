@@ -7,15 +7,20 @@ import subprocess
 import os
 
 import asyncio
+import shutil
 
 from loguru import logger
 from fastapi import APIRouter
 from fastapi import Request
+from fastapi import File
+from fastapi import UploadFile
 from fastapi import Depends
 from fastapi import status
 from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import matplotlib.pyplot as plt
 import seaborn as sb
@@ -25,6 +30,8 @@ from app.repository import TodoRepository
 from app.schemas import Todo
 from app.schemas import Tags
 from app.schemas import TodoSource
+from app.utils import export_todos
+from app.utils import import_todos
 
 todo_router = APIRouter(
     prefix="/todo",
@@ -46,11 +53,21 @@ async def get_home(request: Request):
     logger.info("In home")
 
     return templates.TemplateResponse("index.html",
-        {"request": request})
+                                      {"request": request})
+
+
+@todo_router.get("/info-tasks/", status_code=status.HTTP_200_OK)
+async def get_home(request: Request):
+    """Main page with todo list
+    """
+
+    return templates.TemplateResponse("info-tasks.html",
+                                      {"request": request})
+
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, session: AsyncSession = Depends(get_async_session),
-                   limit: int = 10, skip: int = 0):
+                    limit: int = 10, skip: int = 0):
     todo_repo = TodoRepository(session)
     count = await todo_repo.get_count_todos()
     pages = math.ceil(count / limit)
@@ -61,7 +78,8 @@ async def get_todos(request: Request, session: AsyncSession = Depends(get_async_
     todos = await todo_repo.get_todos(limit, skip)
 
     return templates.TemplateResponse("todos.html",
-        {"request": request, "todos": todos, "page": skip, "pages": pages, "limit": limit})
+                                      {"request": request, "todos": todos, "page": skip, "pages": pages,
+                                       "limit": limit})
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
@@ -171,7 +189,8 @@ async def visualize_todos(request: Request, session: AsyncSession = Depends(get_
     buf.seek(0)
     plt.close(fig)
 
-    return StreamingResponse(buf, media_type="image/png")
+    image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+    return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
 
 
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
@@ -195,16 +214,10 @@ async def generate_todos(count: int = 20):
             raise HTTPException(status_code=500, detail=f"Error during execution: {stderr.decode()}")
 
         logger.info("Todos generated successfully")
-        return {
-            "status": "success",
-            "details": stdout.decode()
-        }
+        return RedirectResponse(url="/todo/home", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while generating todos")
-
-    image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
-    return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
 
 
 @todo_router.get("/export/", status_code=status.HTTP_200_OK)
@@ -213,3 +226,28 @@ async def visualize_todos(request: Request):
     """
     return templates.TemplateResponse("export.html",
                                       {"request": request})
+
+
+@todo_router.post("/import")
+async def import_file(file: UploadFile = File(...), session: AsyncSession = Depends(get_async_session)):
+    with open(file.filename, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    todos = import_todos(file.filename)
+    todo_repo = TodoRepository(session)
+
+    for todo in todos:
+        await todo_repo.add_todo_object(todo)
+
+    return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@todo_router.post("/export/")
+async def export_data(session: AsyncSession = Depends(get_async_session)):
+    todo_repo = TodoRepository(session)
+    todos = await todo_repo.get_all_todos()
+
+    export_todos(todos)
+
+    return FileResponse("data/todos.xlsx",
+                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
