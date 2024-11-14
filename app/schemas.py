@@ -3,6 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+class TodoSource(Enum):
+    created = "Созданный"
+    generated = "Сгенерированный"
+    exported = "Экспортированный"
 
 class Tags(str, Enum):
     study = "Учёба"
@@ -17,6 +21,7 @@ class Todo(BaseModel):
     tag: Tags = Field(default=Tags.plans)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: datetime | None = None
+    source: TodoSource = Field(default=TodoSource.created)
 
     model_config = {
         "json_schema_extra": {
@@ -27,7 +32,8 @@ class Todo(BaseModel):
                     "completed": False,
                     "tag": "Планы",
                     "created_at": "2023-10-01T00:00:00Z",
-                    "completed_at": None
+                    "completed_at": None,
+                    "source": "Созданный"
                 }
             ]
         }

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<form id="todoForm" class="d-flex flex-column gap-2">
-    <h2 class="h2">Редактирование задачи</h2>
+    <form id="todoForm" class="d-flex flex-column gap-2">
+        <h2 class="h2">Редактирование задачи</h2>
 
     <div class="form-floating">
         <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"
@@ -21,26 +21,39 @@
                id="flexSwitchCheckChecked" name="completed">
     </div>
 
+        <div class="form-floating">
+            <select class="form-select" name="tag" id="tag" aria-label="Floating label select example">
+                {% for tag in tags %}
+                    <option {% if todo.tag==tag.value %}selected{% endif %}
+                            value="{{ tag.value }}">{{ tag.value }}</option>
+                {% endfor %}
+            </select>
+            <label for="tag">Тип задачи:</label>
+        </div>
 
-    <div class="form-floating">
-        <select class="form-select" name="tag" id="tag" aria-label="Floating label select example">
-            {% for tag in tags %}
-            <option {% if todo.tag==tag.value %}selected{% endif %} value="{{ tag.value }}">{{ tag.value }}</option>
-            {% endfor %}
-        </select>
-        <label for="tag">Тип задачи:</label>
-    </div>
+        <div class="form-group">
+            <label for="created_at">Дата создания:</label>
+            <input type="text" class="form-control" id="created_at" name="created_at"
+                   value="{{ todo.created_at.strftime('%Y-%m-%d %H:%M') }}" readonly>
+        </div>
 
-    <button type="submit" class="btn btn-success">Добавить</button>
-</form>
 
-<script>
+        <div class="form-group">
+            <label for="due_date">Дата выполнения:</label>
+            <input type="text" class="form-control" id="due_date" name="due_date"
+                   value="{{ todo.completed_at.strftime('%Y-%m-%d %H:%M') if todo.completed_at else '' }}"
+                   readonly>
+        </div>
 
-    document.getElementById('todoForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+        <button type="submit" class="btn btn-success">Добавить</button>
+    </form>
 
-        const formData = new FormData(this);
-        const todoData = Object.fromEntries(formData.entries());
+    <script>
+        document.getElementById('todoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const todoData = Object.fromEntries(formData.entries());
 
         fetch('/todo/edit/{{ todo.id }}/', {
             method: 'PUT',
@@ -54,8 +67,8 @@
         })
         .catch(error => console.error('Ошибка:', error));
 
-        this.reset();
 
-    });
-</script>
+            this.reset();
+        });
+    </script>
 {% endblock content %}

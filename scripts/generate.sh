@@ -29,6 +29,7 @@ for ((i=1; i <= COUNT; i++)); do
       -d '{
             "title": "'"${title}"'",
             "details": "'"${detail}"'",
-            "tag": "'"${tag}"'"
+            "tag": "'"${tag}"'",
+            "source": "Сгенерированный"
           }'
 done

@@ -3,6 +3,10 @@ import math
 import io
 import squarify
 from datetime import datetime
+import subprocess
+import os
+
+import asyncio
 
 from loguru import logger
 from fastapi import APIRouter
@@ -20,6 +24,7 @@ from app.database import get_async_session
 from app.repository import TodoRepository
 from app.schemas import Todo
 from app.schemas import Tags
+from app.schemas import TodoSource
 
 todo_router = APIRouter(
     prefix="/todo",
@@ -165,6 +170,38 @@ async def visualize_todos(request: Request, session: AsyncSession = Depends(get_
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close(fig)
+
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@todo_router.get("/generate/", status_code=status.HTTP_200_OK)
+async def generate_todos(count: int = 20):
+    """Generate a number of todos by calling a bash script."""
+    logger.info(f"Generating {count} todos")
+    script_directory = os.path.dirname(__file__)
+    script_path = os.path.join(script_directory, "../scripts/generate.sh")
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "bash", script_path, str(count),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            logger.error(f"Error during execution: {stderr.decode()}")
+            raise HTTPException(status_code=500, detail=f"Error during execution: {stderr.decode()}")
+
+        logger.info("Todos generated successfully")
+        return {
+            "status": "success",
+            "details": stdout.decode()
+        }
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating todos")
 
     image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
     return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
