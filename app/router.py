@@ -56,6 +56,15 @@ async def get_home(request: Request):
                                       {"request": request})
 
 
+@todo_router.get("/info-tasks/", status_code=status.HTTP_200_OK)
+async def get_home(request: Request):
+    """Main page with todo list
+    """
+
+    return templates.TemplateResponse("info-tasks.html",
+                                      {"request": request})
+
+
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, session: AsyncSession = Depends(get_async_session),
                     limit: int = 10, skip: int = 0):
