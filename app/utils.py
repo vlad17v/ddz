@@ -53,7 +53,7 @@ def import_todos(file_path) -> list[Todo]:
         todo = Todo()
         todo.id = id
         todo.title = title
-        todo.details = details
+        todo.details = details if details is not None else ""
         todo.completed = bool(completed)
         todo.tag = tag
         todo.created_at = created_at
