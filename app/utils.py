@@ -7,6 +7,7 @@ from openpyxl.styles import Alignment
 from app.models import Todo
 from datetime import datetime
 
+
 def export_todos(todos: list[Todo]):
     if not os.path.exists("data"):
         os.mkdir("data")

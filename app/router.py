@@ -97,7 +97,8 @@ async def add_todo(todo: Todo, session: AsyncSession = Depends(get_async_session
 
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
-async def get_todo(request: Request, todo_id: int, session: AsyncSession = Depends(get_async_session)):
+async def get_todo(request: Request, todo_id: int, limit: int = 10, skip: int = 0,
+                   session: AsyncSession = Depends(get_async_session)):
     """Get todo
     """
     todo_repo = TodoRepository(session)
@@ -110,7 +111,8 @@ async def get_todo(request: Request, todo_id: int, session: AsyncSession = Depen
         )
 
     logger.info(f"Getting todo: {todo}")
-    return templates.TemplateResponse("edit.html", {"request": request, "todo": todo, "tags": Tags})
+    return templates.TemplateResponse("edit.html",
+                                      {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip})
 
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
@@ -140,7 +142,7 @@ async def edit_todo(todo_id: int, todo_change: Todo,
 
 
 @todo_router.delete("/delete/{todo_id}/", status_code=status.HTTP_200_OK)
-async def delete_todo(todo_id: int, session: AsyncSession = Depends(get_async_session)):
+async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, session: AsyncSession = Depends(get_async_session)):
     """Delete todo
     """
     todo_repo = TodoRepository(session)
@@ -156,7 +158,9 @@ async def delete_todo(todo_id: int, session: AsyncSession = Depends(get_async_se
     await todo_repo.delete_todo(todo_id)
     return {
         "status": "success",
-        "details": "Todo deleted"
+        "details": "Todo deleted",
+        "limit": limit,
+        "skip": skip
     }
 
 

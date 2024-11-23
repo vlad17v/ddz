@@ -64,7 +64,7 @@
                 .then(res => res.json())
                 .then(data => {
                     console.log('Успешно:', data);
-                    window.location.href = '/todo/list/';
+                    window.location.href = '/todo/list/?limit={{ limit }}&skip={{ skip }}';
                 })
                 .catch(error => console.error('Ошибка:', error));
 
