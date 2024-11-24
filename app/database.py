@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.models import Base
 
-DB_URL = "postgresql+asyncpg://postgres:123@localhost:5432/db"
+import os
 
+DB_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:123@localhost:5432/db")
 
 engine = create_async_engine(DB_URL)
 # for logging all SQL-queries
