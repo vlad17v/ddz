@@ -44,3 +44,10 @@ sudo docker run --rm -p 8000:8000 --name app -v "${PWD}/app":/code/app -v "${PWD
 # генерация туду
 sudo docker run --rm --network=host 2022-3-03-vor-lr1-generate 
 ```
+
+#### Docker compose
+```bash
+sudo docker compose up --build
+ 
+sudo docker compose up
+```
