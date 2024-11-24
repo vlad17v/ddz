@@ -1,6 +1,5 @@
 """Database for todo
 """
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,10 +8,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.models import Base
 
-DB_PATH = "data"
-DB_URL = f"sqlite+aiosqlite:///{DB_PATH}/db.sqlite"
+DB_URL = "postgresql+asyncpg://postgres:123@localhost:5432/db"
 
-engine = create_async_engine(DB_URL, connect_args={"check_same_thread": False})
+
+engine = create_async_engine(DB_URL)
 # for logging all SQL-queries
 # ENGINE = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=True)
 async_session_maker = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -21,8 +20,6 @@ async_session_maker = async_sessionmaker(autocommit=False, autoflush=False, bind
 async def init_db():
     """Init database, create all models as tables
     """
-    if not os.path.exists(DB_PATH):
-        os.mkdir(DB_PATH)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
