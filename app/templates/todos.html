@@ -12,6 +12,11 @@
         {% else %}
         <span>{{ todo.title }}</span>
         {% endif %}
+
+        <div style="color: dodgerblue">
+            {{ todo.source.value }}
+        </div>
+
         <div class="form-check form-switch ms-auto">
             <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
             <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"
@@ -19,6 +24,7 @@
                    data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed
                    %}checked{% endif %}>
         </div>
+
         <div class="btn-group">
             <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
             <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
@@ -36,6 +42,7 @@
         {% endfor %}
     </ul>
 </nav>
+
 
 <script>
 

@@ -58,6 +58,7 @@ def import_todos(file_path) -> list[Todo]:
         todo.tag = tag
         todo.created_at = created_at
         todo.completed_at = completed_at
+        todo.source = "Экспортированный"
         todos.append(todo)
 
     workbook.close()

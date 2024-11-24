@@ -5,9 +5,9 @@ from pydantic import Field
 
 
 class TodoSource(Enum):
-    created = "Созданный"
-    generated = "Сгенерированный"
-    exported = "Экспортированный"
+    created = "Созданная"
+    generated = "Сгенерированная"
+    exported = "Экспортированная"
 
 
 class Tags(str, Enum):
