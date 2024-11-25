@@ -134,6 +134,8 @@ async def edit_todo(todo_id: int, todo_change: Todo,
     if todo_change.completed:
         todo_change.completed_at = datetime.utcnow()
 
+    todo_change.source = todo.source
+
     await todo_repo.update_todo(todo_id, todo_change.model_dump())
     return {
         "status": "success",
