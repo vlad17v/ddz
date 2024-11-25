@@ -5,12 +5,25 @@
 <div class="container mt-5">
     <h3>Импорт</h3>
     <div class="mb-3">
-        <form action="/todo/import/" method="post" enctype="multipart/form-data">
+        <form id="importForm">
 
             <label for="file" class="form-label">Выберите файл для импорта (формат .xlsx):</label>
             <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
             <button type="submit" class="btn btn-primary mt-3">Импортировать</button>
         </form>
+
+        <script>
+            const form = document.querySelector("#importForm")
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const action = () => fetch("/todo/import/", {
+                    method: 'POST',
+                    body: new FormData(form)
+                })
+                closeShowModal(action)
+            })
+     </script>
+
     </div>
     <h3>Экспорт</h3>
     <div>
