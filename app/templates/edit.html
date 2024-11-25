@@ -49,6 +49,13 @@
     <button type="submit" class="btn btn-success">Сохранить</button>
 </form>
 
+<div class="mt-3">
+    <h4>Перейти к задачам типа:</h4>
+    <a href="/todo/list/?tag=Учёба" class="btn btn-outline-primary me-2">Учёба</a>
+    <a href="/todo/list/?tag=Личное" class="btn btn-outline-primary me-2">Личное</a>
+    <a href="/todo/list/?tag=Планы" class="btn btn-outline-primary me-2">Планы</a>
+</div>
+
 <script>
     document.getElementById('todoForm').addEventListener('submit', function (e) {
         e.preventDefault();
