@@ -7,6 +7,9 @@ from openpyxl.styles import Alignment
 from app.models import Todo
 from datetime import datetime
 
+from app.schemas import TodoSource
+
+
 def export_todos(todos: list[Todo]):
     if not os.path.exists("data"):
         os.mkdir("data")
@@ -58,6 +61,7 @@ def import_todos(file_path) -> list[Todo]:
         todo.tag = tag
         todo.created_at = created_at
         todo.completed_at = completed_at
+        todo.source = TodoSource.imported
         todos.append(todo)
 
     workbook.close()
