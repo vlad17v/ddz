@@ -67,7 +67,8 @@ async def get_home(request: Request):
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, session: AsyncSession = Depends(get_async_session),
-                    limit: int = 10, skip: int = 0):
+                    limit: int = 10, skip: int = 0,
+                    creation_date_start: str = None, creation_date_end: str = None):
     todo_repo = TodoRepository(session)
     count = await todo_repo.get_count_todos()
     pages = math.ceil(count / limit)
@@ -75,7 +76,10 @@ async def get_todos(request: Request, session: AsyncSession = Depends(get_async_
     if skip > pages:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such page")
 
-    todos = await todo_repo.get_todos(limit, skip)
+    creation_date_start = datetime.strptime(creation_date_start, "%Y-%m-%d") if creation_date_start else None
+    creation_date_end = datetime.strptime(creation_date_end, "%Y-%m-%d") if creation_date_end else None
+
+    todos = await todo_repo.get_todos(limit, skip, creation_date_start, creation_date_end)
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
