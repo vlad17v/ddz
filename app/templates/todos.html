@@ -26,7 +26,8 @@
         </div>
 
         <div class="btn-group">
-            <a class="btn btn-success" href="/todo/edit/{{ todo.id }}/">Редактировать</a>
+            <a class="btn btn-success"
+               href="/todo/edit/{{ todo.id }}/?limit={{ limit }}&skip={{ page }}">Редактировать</a>
             <button class="btn btn-danger deleteButton" href="#" data-todo-id="{{ todo.id }}">Удалить</button>
         </div>
     </li>
@@ -50,13 +51,13 @@
         button.addEventListener('click', function (e) {
             const todoId = this.dataset.todoId;
 
-            fetch(`/todo/delete/${todoId}/`, {
+            fetch(`/todo/delete/${todoId}/?limit={{ limit }}&skip={{ page }}`, {
                 method: 'DELETE'
             })
                     .then(res => res.json())
                     .then(data => {
                         console.log('Успешно:', data);
-                        window.location.href = '/todo/list/';
+                        window.location.href = '/todo/list/?limit=' + data["limit"] + '&skip=' + data["skip"];
                     })
                     .catch(error => console.error('Ошибка:', error));
         });
