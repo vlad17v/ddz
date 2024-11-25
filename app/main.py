@@ -5,16 +5,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
 from app.router import todo_router
-from app.database import lifespan
 
-app = FastAPI(
-    lifespan=lifespan
-)
+app = FastAPI()
 
 @app.get("/")
 async def main_page():
     return RedirectResponse("/todo/home", status_code=303)
-
 
 
 app.include_router(todo_router)

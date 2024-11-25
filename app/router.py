@@ -2,13 +2,13 @@ import base64
 import math
 import io
 import squarify
-from datetime import datetime
-import subprocess
 import os
+from datetime import datetime
 
 import asyncio
 import shutil
-
+import matplotlib.pyplot as plt
+import seaborn as sb
 from loguru import logger
 from fastapi import APIRouter
 from fastapi import Request
@@ -18,20 +18,16 @@ from fastapi import Depends
 from fastapi import status
 from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import StreamingResponse
 from fastapi.responses import RedirectResponse
 from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-import matplotlib.pyplot as plt
-import seaborn as sb
 
-from app.database import get_async_session
-from app.repository import TodoRepository
+from app.database import get_async_uow_session
 from app.schemas import Todo
 from app.schemas import Tags
 from app.schemas import TodoSource
 from app.utils import export_todos
 from app.utils import import_todos
+from app.uow import UnitOfWork
 
 todo_router = APIRouter(
     prefix="/todo",
@@ -66,16 +62,15 @@ async def get_home(request: Request):
 
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
-async def get_todos(request: Request, session: AsyncSession = Depends(get_async_session),
+async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session),
                     limit: int = 10, skip: int = 0):
-    todo_repo = TodoRepository(session)
-    count = await todo_repo.get_count_todos()
+    count = await uow_session.todo.get_count_todos()
     pages = math.ceil(count / limit)
 
     if skip > pages:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such page")
 
-    todos = await todo_repo.get_todos(limit, skip)
+    todos = await uow_session.todo.get_todos(limit, skip)
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
@@ -83,13 +78,12 @@ async def get_todos(request: Request, session: AsyncSession = Depends(get_async_
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
-async def add_todo(todo: Todo, session: AsyncSession = Depends(get_async_session)):
+async def add_todo(todo: Todo, uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Add new todo
     """
     logger.info(f"Creating todo: {todo}")
 
-    todo_repo = TodoRepository(session)
-    await todo_repo.add_todo(todo.model_dump())
+    await uow_session.todo.add_todo(todo.model_dump())
     return {
         "status": "success",
         "details": "Todo added"
@@ -98,11 +92,10 @@ async def add_todo(todo: Todo, session: AsyncSession = Depends(get_async_session
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
 async def get_todo(request: Request, todo_id: int, limit: int = 10, skip: int = 0,
-                   session: AsyncSession = Depends(get_async_session)):
+                   uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Get todo
     """
-    todo_repo = TodoRepository(session)
-    todo = await todo_repo.get_todo(todo_id)
+    todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
         raise HTTPException(
@@ -117,11 +110,10 @@ async def get_todo(request: Request, todo_id: int, limit: int = 10, skip: int = 
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
 async def edit_todo(todo_id: int, todo_change: Todo,
-                    session: AsyncSession = Depends(get_async_session)):
+                    uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Edit todo
     """
-    todo_repo = TodoRepository(session)
-    todo = await todo_repo.get_todo(todo_id)
+    todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
         raise HTTPException(
@@ -134,7 +126,7 @@ async def edit_todo(todo_id: int, todo_change: Todo,
     if todo_change.completed:
         todo_change.completed_at = datetime.utcnow()
 
-    await todo_repo.update_todo(todo_id, todo_change.model_dump())
+    await uow_session.todo.update_todo(todo_id, todo_change.model_dump())
     return {
         "status": "success",
         "details": "Todo edited"
@@ -142,11 +134,10 @@ async def edit_todo(todo_id: int, todo_change: Todo,
 
 
 @todo_router.delete("/delete/{todo_id}/", status_code=status.HTTP_200_OK)
-async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, session: AsyncSession = Depends(get_async_session)):
+async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Delete todo
     """
-    todo_repo = TodoRepository(session)
-    todo = await todo_repo.get_todo(todo_id)
+    todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
         raise HTTPException(
@@ -155,7 +146,7 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, session: Asy
         )
 
     logger.info(f"Deleting todo: {todo}")
-    await todo_repo.delete_todo(todo_id)
+    await uow_session.todo.delete_todo(todo_id)
     return {
         "status": "success",
         "details": "Todo deleted",
@@ -165,11 +156,10 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, session: Asy
 
 
 @todo_router.get("/visualize/", status_code=status.HTTP_200_OK)
-async def visualize_todos(request: Request, session: AsyncSession = Depends(get_async_session)):
+async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Visualize todos as a treemap by tags
     """
-    todo_repo = TodoRepository(session)
-    todos = await todo_repo.get_todos(limit=1000, skip=0)
+    todos = await uow_session.todo.get_todos(limit=1000, skip=0)
 
     tag_counts = {tag.value: 0 for tag in Tags}
     for todo in todos:
@@ -233,23 +223,21 @@ async def visualize_todos(request: Request):
 
 
 @todo_router.post("/import")
-async def import_file(file: UploadFile = File(...), session: AsyncSession = Depends(get_async_session)):
+async def import_file(file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
     with open(file.filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     todos = import_todos(file.filename)
-    todo_repo = TodoRepository(session)
 
     for todo in todos:
-        await todo_repo.add_todo_object(todo)
+        await uow_session.todo.add_todo_object(todo)
 
     return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @todo_router.post("/export/")
-async def export_data(session: AsyncSession = Depends(get_async_session)):
-    todo_repo = TodoRepository(session)
-    todos = await todo_repo.get_all_todos()
+async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
+    todos = await uow_session.todo.get_all_todos()
 
     export_todos(todos)
 
