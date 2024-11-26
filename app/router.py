@@ -155,6 +155,25 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session:
     }
 
 
+@todo_router.delete("/delete/", status_code=status.HTTP_200_OK)
+async def delete_todos(uow_session: UnitOfWork = Depends(get_async_uow_session),
+                       limit: int = 10, skip: int = 0, start: int = 0, end: int = 0):
+    count = await uow_session.todo.get_count_todos()
+    pages = math.ceil(count / limit)
+
+    if skip > pages or start > end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect range")
+
+
+    await uow_session.todo.delete_todos(skip, limit, start, end)
+    return {
+        "status": "success",
+        "details": "Todos deleted",
+        "limit": limit,
+        "skip": skip
+    }
+
+
 @todo_router.get("/visualize/", status_code=status.HTTP_200_OK)
 async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Visualize todos as a treemap by tags
