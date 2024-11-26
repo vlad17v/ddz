@@ -61,6 +61,9 @@
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+
+        <img src="../../data/35994571827309.5bd22e2227f46.png" alt="todo" style="width: 50px; height: 50px;">
+
         {% if todo.completed %}
         <strike>{{ todo.title }}</strike>
         {% else %}

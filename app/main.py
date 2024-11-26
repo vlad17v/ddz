@@ -8,6 +8,7 @@ from app.router import todo_router
 
 app = FastAPI()
 
+app.mount("/data", StaticFiles(directory="data"), name="data")
 @app.get("/")
 async def main_page():
     return RedirectResponse("/todo/home", status_code=303)
