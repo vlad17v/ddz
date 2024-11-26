@@ -7,7 +7,7 @@ from pydantic import Field
 class TodoSource(Enum):
     created = "Созданная"
     generated = "Сгенерированная"
-    imported = "Импортироаванный"
+    imported = "Импортированная"
 
 
 class Tags(str, Enum):
@@ -35,7 +35,7 @@ class Todo(BaseModel):
                     "tag": "Планы",
                     "created_at": "2023-10-01T00:00:00Z",
                     "completed_at": None,
-                    "source": "Созданный"
+                    "source": "Созданная"
                 }
             ]
         }

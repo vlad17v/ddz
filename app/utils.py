@@ -56,7 +56,7 @@ def import_todos(file_path) -> list[Todo]:
         todo = Todo()
         todo.title = title
         todo.details = details if details is not None else ""
-        todo.completed = bool(completed)
+        todo.completed = True if completed == "Выполнено" else False
         todo.tag = tag
         todo.created_at = created_at
         todo.completed_at = completed_at

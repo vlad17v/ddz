@@ -1,15 +1,7 @@
 from datetime import datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy import insert
-from sqlalchemy import desc
-from sqlalchemy import func
-from sqlalchemy import update
-from sqlalchemy import delete
-
+from sqlalchemy import select, insert, desc, func, update, delete, and_
 from app.models import Todo
-
 
 class TodoRepository:
     def __init__(self, session: AsyncSession):
@@ -22,10 +14,15 @@ class TodoRepository:
         data = count_todo.scalar()
         return data
 
-    async def get_todos(self, limit: int, skip: int):
-        find_todos = await self._session.execute(
-            select(Todo).order_by(desc(Todo.id)).offset(skip * limit).limit(limit)
-        )
+    async def get_todos(self, limit: int, skip: int, creation_date_start: datetime = None, creation_date_end: datetime = None):
+        query = select(Todo).order_by(desc(Todo.id)).offset(skip * limit).limit(limit)
+
+        if creation_date_start:
+            query = query.where(Todo.created_at >= creation_date_start)
+        if creation_date_end:
+            query = query.where(Todo.created_at <= creation_date_end)
+
+        find_todos = await self._session.execute(query)
         data = find_todos.scalars().all()
         return data
 

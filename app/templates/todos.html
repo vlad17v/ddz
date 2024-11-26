@@ -4,6 +4,60 @@
 
 <h2 class="h2">Задачи</h2>
 
+<div class="accordion" id="accordionFilters">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
+                aria-expanded="false" aria-controls="collapseOne">
+                Фильтры
+            </button>
+        </h2>
+        <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionFilters">
+            <div class="accordion-body">
+                <form id="formFilters">
+                    <div class="mb-3">
+                        <span class="form-label">Дата создания</span>
+                        <div class="input-group input-group-sm flex-nowrap mb-1">
+                            <span class="input-group-text" id="addon-wrapping">От</span>
+                            <input type="date" name="creation_date_start" class="form-control" placeholder="" aria-label="" aria-describedby="addon-wrapping">
+                        </div>
+                        <div class="input-group input-group-sm flex-nowrap">
+                            <span class="input-group-text" id="addon-wrapping">До</span>
+                            <input type="date" name="creation_date_end" class="form-control" placeholder="" aria-label="" aria-describedby="addon-wrapping">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Поиск</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const accardion = document.querySelector("#accordionFilters");
+    accardion.querySelector("button.accordion-button").addEventListener("click", (e) => {
+        e.currentTarget.classList.toggle("collapsed")
+        document.querySelector(`${e.currentTarget.dataset.bsTarget}`).classList.toggle("show")
+    })
+
+    const form = document.querySelector("#formFilters")
+
+    const handleFilterSubmit = (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams(window.location.search)
+        form.querySelectorAll("input.form-control").forEach((input) => {
+            if(input.value){
+                params.set(input.name, input.value)
+            } else {
+                params.delete(input.name)
+            }
+        })
+        window.location.search = params.toString()
+    }
+
+    form.addEventListener("submit", handleFilterSubmit)
+</script>
+
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
