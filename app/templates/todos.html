@@ -105,15 +105,18 @@
         button.addEventListener('click', function (e) {
             const todoId = this.dataset.todoId;
 
-            fetch(`/todo/delete/${todoId}/?limit={{ limit }}&skip={{ page }}`, {
-                method: 'DELETE'
-            })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log('Успешно:', data);
-                        window.location.href = '/todo/list/?limit=' + data["limit"] + '&skip=' + data["skip"];
-                    })
-                    .catch(error => console.error('Ошибка:', error));
+            const action = () => {
+                fetch(`/todo/delete/${todoId}/`, {
+                    method: 'DELETE'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/list/';
+                })
+                .catch(error => console.error('Ошибка:', error))
+            };
+            closeShowModal(action)
         });
     });
 

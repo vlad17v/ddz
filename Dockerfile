@@ -1,13 +1,18 @@
 FROM python:3.12-slim
 
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
 RUN apt-get update && apt-get install curl -y && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /
-RUN pip3 install -r /requirements.txt
+RUN pip3 install --no-cache -r /requirements.txt
 
 COPY scripts /code/scripts
+COPY docker_scripts /code/docker_scripts
 COPY app /code/app
+COPY alembic.ini /code/alembic.ini
+COPY migrations /code/migrations
 WORKDIR /code/
 
-ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
+RUN chmod a+x /code/docker_scripts/app.sh
