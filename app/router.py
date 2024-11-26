@@ -63,14 +63,17 @@ async def get_home(request: Request):
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session),
-                    limit: int = 10, skip: int = 0):
+                    limit: int = 10, skip: int = 0, creation_date_start: str = None, creation_date_end: str = None):
     count = await uow_session.todo.get_count_todos()
     pages = math.ceil(count / limit)
 
     if skip > pages:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such page")
 
-    todos = await uow_session.todo.get_todos(limit, skip)
+    creation_date_start = datetime.strptime(creation_date_start, "%Y-%m-%d") if creation_date_start else None
+    creation_date_end = datetime.strptime(creation_date_end, "%Y-%m-%d") if creation_date_end else None
+
+    todos = await uow_session.todo.get_todos(limit, skip, creation_date_start, creation_date_end)
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
@@ -125,6 +128,8 @@ async def edit_todo(todo_id: int, todo_change: Todo,
 
     if todo_change.completed:
         todo_change.completed_at = datetime.utcnow()
+
+    todo_change.source = todo.source
 
     await uow_session.todo.update_todo(todo_id, todo_change.model_dump())
     return {
