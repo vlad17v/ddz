@@ -6,7 +6,8 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
 
-from app.schemas import Tags, TodoSource
+from app.schemas import Tags
+from app.schemas import TodoSource
 
 
 class Base(DeclarativeBase):
