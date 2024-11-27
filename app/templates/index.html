@@ -24,9 +24,9 @@
         </select>
         <label for="tag">Тип задачи:</label>
     </div>
-    <div class="form-floating">
-        <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+    <div class="form-group">
         <label for="image">Выберите изображение:</label>
+        <input type="file" class="form-control" id="image" name="image" accept="image/*">
     </div>
 
 
@@ -37,20 +37,49 @@
     document.getElementById('todoForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
-        const formData = new FormData(this);
-        const todoData = Object.fromEntries(formData.entries());
+        const title = document.getElementById('title').value;
+        const details = document.getElementById('details').value;
+        const tag = document.getElementById('tag').value;
+        const imageFile = document.getElementById('image').files[0];
 
-        fetch('/todo/add/', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(todoData)
-        })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
+        const todoData = {
+            title: title,
+            details: details,
+            tag: tag
+        };
+
+        const reader = new FileReader();
+        reader.onloadend = function () {
+            todoData.image = reader.result;
+
+            fetch('/todo/add/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(todoData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
+        };
+
+        if (imageFile) {
+            reader.readAsDataURL(imageFile);
+        } else {
+            fetch('/todo/add/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(todoData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Успешно:', data);
+                window.location.href = '/todo/home/';
+            })
+            .catch(error => console.error('Ошибка:', error));
+        }
 
         this.reset();
     });
