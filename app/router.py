@@ -77,7 +77,8 @@ async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_asyn
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
-                                       "limit": limit})
+                                       "limit": limit, "creation_date_start": creation_date_start,
+                                       "creation_date_end": creation_date_end})
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)

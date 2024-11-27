@@ -92,7 +92,19 @@
     <ul class="pagination">
         {% for i in range(pages) %}
         <li class="page-item {% if i==page %}active{% endif %}">
-            <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+            {% if creation_date_start is none %}
+                {% if creation_date_end is none %}
+                    <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
+                {% else %}
+                    <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}">{{ i + 1 }}</a>
+                {% endif %}
+            {% else %}
+                {% if creation_date_end is none %}
+                    <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}">{{ i + 1 }}</a>
+                {% else %}
+                    <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}">{{ i + 1 }}</a>
+                {% endif %}
+            {% endif %}
         </li>
         {% endfor %}
     </ul>
