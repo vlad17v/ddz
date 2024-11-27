@@ -1,6 +1,11 @@
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert, desc, func, update, delete, and_
+from sqlalchemy import select
+from sqlalchemy import insert
+from sqlalchemy import desc
+from sqlalchemy import func
+from sqlalchemy import update
+from sqlalchemy import delete
 from app.models import Todo
 
 class TodoRepository:
