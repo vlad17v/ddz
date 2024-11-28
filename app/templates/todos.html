@@ -110,7 +110,7 @@
         <div class="d-none position-absolute end-0 mt-1 bg-white rounded shadow-lg" id="deleteOptions"
              style="min-width: 240px; z-index: 1000;">
             <button class="btn btn-outline-danger w-100 border-0 text-start px-3 py-2"
-                    onclick="handleDeleteOption('all')">
+                    onclick="deleteAllTasks()">
                 Удалить все задачи
             </button>
             <button class="btn btn-outline-danger w-100 border-0 text-start px-3 py-2"
@@ -119,15 +119,21 @@
             </button>
 
             <div class="d-none p-3" id="rangeInputs">
-                <div class="d-flex align-items-center justify-content-center gap-2">
-                    <span class="text-secondary">С</span>
-                    <input type="number" class="form-control form-control-sm" style="width: 60px" id="startInput"
+                <div class="input-group input-group-sm flex-nowrap mb-1">
+                    <span class="input-group-text" for="startInput"
+                          style="width: 40px; justify-content: center;">С</span>
+                    <input type="number" class="form-control" id="startInput"
                            min="1" value="1">
-                    <span class="text-secondary">по</span>
-                    <input type="number" class="form-control form-control-sm" style="width: 60px" id="endInput" min="1"
+                </div>
+                <div class="input-group input-group-sm flex-nowrap">
+                    <span class="input-group-text" for="endInput"
+                          style="width: 40px; justify-content: center;">По</span>
+                    <input type="number" class="form-control" id="endInput" min="1"
                            value="1">
                 </div>
-                <button class="btn btn-success btn-sm mt-2 w-100" onclick="deleteRange()">Подтвердить</button>
+
+                <button class="btn btn-success btn-sm mt-2 w-100" onclick="closeShowModal(deleteRange)">Подтвердить
+                </button>
             </div>
 
             <div class="alert alert-danger mt-2 mx-2 py-2 px-3 d-none" id="errorMsg" style="font-size: 0.875rem">
@@ -203,22 +209,21 @@
         }
     }
 
-    function deleteAllTasks() {
-        if (confirm('Вы уверены, что хотите удалить все задачи?')) {
-            const tasks = document.querySelectorAll('.list-group-item');
-            tasks.forEach(task => {
-                const todoId = task.querySelector('.deleteButton').dataset.todoId;
-                fetch(`/todo/delete/${todoId}/`, {
-                    method: 'DELETE'
-                })
-                    .then(res => res.json())
-                    .catch(error => console.error('Ошибка:', error));
-            });
+    const deleteAllTasks = () => {
+        const action = () => {
+            fetch(`/todo/delete/`, {
+                method: 'DELETE'
+            })
+                .then(res => res.json())
+                .catch(error => console.error('Ошибка:', error));
 
             setTimeout(() => {
-                window.location.href = '/todo/list/';
+                const params = new URLSearchParams(window.location.search);
+                params.set('skip', '0');
+                window.location.href = `${window.location.pathname}?${params.toString()}`;
             }, 500);
         }
+        closeShowModal(action)
     }
 
     function initializeRangeInputs() {
@@ -239,31 +244,27 @@
         const startIndex = parseInt(startInput.value);
         const endIndex = parseInt(endInput.value);
         const errorMsg = document.getElementById('errorMsg');
-        const tasks = document.getElementsByClassName('list-group-item');
 
-        if (startIndex > endIndex || startIndex < 1 || endIndex > tasks.length) {
+        if (startIndex > endIndex || startIndex < 1) {
             errorMsg.classList.remove('d-none');
             return;
         }
 
         errorMsg.classList.add('d-none');
 
-        if (confirm(`Вы уверены, что хотите удалить задачи с ${startIndex} по ${endIndex}?`)) {
-            const tasksToDelete = Array.from(tasks).slice(startIndex - 1, endIndex);
+        const params = new URLSearchParams(window.location.search);
+        params.set('start', startIndex.toString());
+        params.set('end', endIndex.toString());
 
-            tasksToDelete.forEach(task => {
-                const todoId = task.querySelector('.deleteButton').dataset.todoId;
-                fetch(`/todo/delete/${todoId}/`, {
-                    method: 'DELETE'
-                })
-                    .then(res => res.json())
-                    .catch(error => console.error('Ошибка:', error));
-            });
+        fetch(`/todo/delete/?${params.toString()}`, {
+            method: 'DELETE'
+        })
+            .then(res => res.json())
+            .catch(error => console.error('Ошибка:', error));
 
-            setTimeout(() => {
-                window.location.href = '/todo/list/';
-            }, 500);
-        }
+        setTimeout(() => {
+            window.location.href = window.location.href.toString();
+        }, 500);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -276,7 +277,6 @@
         endInput.value = tasks.length;
     });
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function (e) {
         const deleteOptions = document.getElementById('deleteOptions');
         const deleteButton = document.querySelector('.dropdown button');
