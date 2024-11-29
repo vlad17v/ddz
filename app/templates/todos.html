@@ -29,7 +29,19 @@
                                    aria-label="" aria-describedby="addon-wrapping">
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <span class="form-label">Тег</span>
+                        <select class="form-select form-select-sm" name="tag">
+                            <option value="" selected>Любой</option>
+                            <option value="Учёба">Учёба</option>
+                            <option value="Личное">Личное</option>
+                            <option value="Планы">Планы</option>
+                        </select>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Поиск</button>
+                    <button type="button" class="btn btn-secondary" id="resetFilters">Сбросить фильтры</button>
                 </form>
             </div>
         </div>
@@ -39,26 +51,75 @@
 <script>
     const accardion = document.querySelector("#accordionFilters");
     accardion.querySelector("button.accordion-button").addEventListener("click", (e) => {
-        e.currentTarget.classList.toggle("collapsed")
-        document.querySelector(`${e.currentTarget.dataset.bsTarget}`).classList.toggle("show")
-    })
+        e.currentTarget.classList.toggle("collapsed");
+        document.querySelector(`${e.currentTarget.dataset.bsTarget}`).classList.toggle("show");
+    });
 
-    const form = document.querySelector("#formFilters")
+    const form = document.querySelector("#formFilters");
+
+    const restoreFilters = () => {
+        const creationDateStart = localStorage.getItem('creation_date_start');
+        const creationDateEnd = localStorage.getItem('creation_date_end');
+        const tag = localStorage.getItem('tag');
+
+        if (creationDateStart) {
+            form.querySelector("input[name='creation_date_start']").value = creationDateStart;
+        }
+        if (creationDateEnd) {
+            form.querySelector("input[name='creation_date_end']").value = creationDateEnd;
+        }
+        if (tag) {
+            form.querySelector("select[name='tag']").value = tag;
+        }
+    };
+
+    const resetFilters = () => {
+        form.querySelectorAll("input.form-control").forEach((input) => {
+            input.value = '';
+            localStorage.removeItem(input.name);
+        });
+
+        const tagSelect = form.querySelector("select[name='tag']");
+        tagSelect.value = '';
+        localStorage.removeItem(tagSelect.name);
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete('creation_date_start');
+        params.delete('creation_date_end');
+        params.delete('tag');
+        params.set('skip', '0');
+        window.location.search = params.toString();
+    };
 
     const handleFilterSubmit = (e) => {
         e.preventDefault();
-        const params = new URLSearchParams(window.location.search)
+        const params = new URLSearchParams(window.location.search);
+        params.set('skip', '0');
         form.querySelectorAll("input.form-control").forEach((input) => {
             if (input.value) {
-                params.set(input.name, input.value)
+                params.set(input.name, input.value);
+                localStorage.setItem(input.name, input.value);
             } else {
-                params.delete(input.name)
+                params.delete(input.name);
+                localStorage.removeItem(input.name);
             }
-        })
-        window.location.search = params.toString()
-    }
+        });
 
-    form.addEventListener("submit", handleFilterSubmit)
+        const tagSelect = form.querySelector("select[name='tag']");
+        if (tagSelect.value) {
+            params.set(tagSelect.name, tagSelect.value);
+            localStorage.setItem(tagSelect.name, tagSelect.value);
+        } else {
+            params.delete(tagSelect.name);
+            localStorage.removeItem(tagSelect.name);
+        }
+
+        window.location.search = params.toString();
+    };
+
+    document.getElementById("resetFilters").addEventListener("click", resetFilters);
+    form.addEventListener("submit", handleFilterSubmit);
+    restoreFilters();
 </script>
 
 <ul class="list-group">
@@ -91,16 +152,18 @@
     {% endfor %}
 </ul>
 
-<div class="d-flex justify-content-between align-items-center">
-    <nav>
-        <ul class="pagination mb-0">
-            {% for i in range(pages) %}
-            <li class="page-item {% if i==page %}active{% endif %}">
-                <a class="page-link" href="/todo/list/?limit={{ limit }}&skip={{ i }}">{{ i + 1 }}</a>
-            </li>
-            {% endfor %}
-        </ul>
-    </nav>
+<nav>
+    <ul class="pagination">
+        {% for i in range(pages) %}
+        <li class="page-item {% if i == page %}active{% endif %}">
+            <a class="page-link"
+               href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
+                {{ i + 1 }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
 
     <div class="dropdown">
         <button class="btn btn-danger dropdown-toggle px-4" type="button" onclick="toggleDeleteOptions()">
@@ -156,7 +219,7 @@
                     .then(res => res.json())
                     .then(data => {
                         console.log('Успешно:', data);
-                        window.location.href = '/todo/list/';
+                        window.location.href = window.location.href.toString();
                     })
                     .catch(error => console.error('Ошибка:', error))
             };
@@ -180,7 +243,7 @@
                 .then(res => res.json())
                 .then(data => {
                     console.log('Успешно:', data);
-                    window.location.href = '/todo/list/';
+                    window.location.href = window.location.href.toString();
                 })
                 .catch(error => console.error('Ошибка:', error));
         });
