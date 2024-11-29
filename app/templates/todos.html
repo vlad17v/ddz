@@ -165,6 +165,46 @@
     </ul>
 </nav>
 
+    <div class="dropdown">
+        <button class="btn btn-danger dropdown-toggle px-4" type="button" onclick="toggleDeleteOptions()">
+            Удалить задачи
+        </button>
+
+        <div class="d-none position-absolute end-0 mt-1 bg-white rounded shadow-lg" id="deleteOptions"
+             style="min-width: 240px; z-index: 1000;">
+            <button class="btn btn-outline-danger w-100 border-0 text-start px-3 py-2"
+                    onclick="deleteAllTasks()">
+                Удалить все задачи
+            </button>
+            <button class="btn btn-outline-danger w-100 border-0 text-start px-3 py-2"
+                    onclick="handleDeleteOption('range')">
+                Удалить задачи по диапазону
+            </button>
+
+            <div class="d-none p-3" id="rangeInputs">
+                <div class="input-group input-group-sm flex-nowrap mb-1">
+                    <span class="input-group-text" for="startInput"
+                          style="width: 40px; justify-content: center;">С</span>
+                    <input type="number" class="form-control" id="startInput"
+                           min="1" value="1">
+                </div>
+                <div class="input-group input-group-sm flex-nowrap">
+                    <span class="input-group-text" for="endInput"
+                          style="width: 40px; justify-content: center;">По</span>
+                    <input type="number" class="form-control" id="endInput" min="1"
+                           value="1">
+                </div>
+
+                <button class="btn btn-success btn-sm mt-2 w-100" onclick="closeShowModal(deleteRange)">Подтвердить
+                </button>
+            </div>
+
+            <div class="alert alert-danger mt-2 mx-2 py-2 px-3 d-none" id="errorMsg" style="font-size: 0.875rem">
+                Некорректный диапазон
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 
@@ -207,6 +247,107 @@
                 })
                 .catch(error => console.error('Ошибка:', error));
         });
+    });
+
+    function toggleDeleteOptions() {
+        const deleteOptions = document.getElementById('deleteOptions');
+        deleteOptions.classList.toggle('d-none');
+
+        if (deleteOptions.classList.contains('d-none')) {
+            document.getElementById('rangeInputs').classList.add('d-none');
+            document.getElementById('errorMsg').classList.add('d-none');
+        }
+    }
+
+    function handleDeleteOption(option) {
+        const rangeInputs = document.getElementById('rangeInputs');
+        rangeInputs.classList.add('d-none');
+        document.getElementById('errorMsg').classList.add('d-none');
+
+        if (option === 'all') {
+            deleteAllTasks();
+        } else if (option === 'range') {
+            rangeInputs.classList.remove('d-none');
+            initializeRangeInputs();
+        }
+    }
+
+    const deleteAllTasks = () => {
+        const action = () => {
+            fetch(`/todo/delete/`, {
+                method: 'DELETE'
+            })
+                .then(res => res.json())
+                .catch(error => console.error('Ошибка:', error));
+
+            setTimeout(() => {
+                const params = new URLSearchParams(window.location.search);
+                params.set('skip', '0');
+                window.location.href = `${window.location.pathname}?${params.toString()}`;
+            }, 500);
+        }
+        closeShowModal(action)
+    }
+
+    function initializeRangeInputs() {
+        const tasks = document.getElementsByClassName('list-group-item');
+        const startInput = document.getElementById('startInput');
+        const endInput = document.getElementById('endInput');
+
+        startInput.max = tasks.length;
+        endInput.max = tasks.length;
+
+        startInput.value = 1;
+        endInput.value = tasks.length;
+    }
+
+    function deleteRange() {
+        const startInput = document.getElementById('startInput');
+        const endInput = document.getElementById('endInput');
+        const startIndex = parseInt(startInput.value);
+        const endIndex = parseInt(endInput.value);
+        const errorMsg = document.getElementById('errorMsg');
+
+        if (startIndex > endIndex || startIndex < 1) {
+            errorMsg.classList.remove('d-none');
+            return;
+        }
+
+        errorMsg.classList.add('d-none');
+
+        const params = new URLSearchParams(window.location.search);
+        params.set('start', startIndex.toString());
+        params.set('end', endIndex.toString());
+
+        fetch(`/todo/delete/?${params.toString()}`, {
+            method: 'DELETE'
+        })
+            .then(res => res.json())
+            .catch(error => console.error('Ошибка:', error));
+
+        setTimeout(() => {
+            window.location.href = window.location.href.toString();
+        }, 500);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const tasks = document.getElementsByClassName('list-group-item');
+        const startInput = document.getElementById('startInput');
+        const endInput = document.getElementById('endInput');
+
+        startInput.max = tasks.length;
+        endInput.max = tasks.length;
+        endInput.value = tasks.length;
+    });
+
+    document.addEventListener('click', function (e) {
+        const deleteOptions = document.getElementById('deleteOptions');
+        const deleteButton = document.querySelector('.dropdown button');
+        if (!deleteButton.contains(e.target) && !deleteOptions.contains(e.target)) {
+            deleteOptions.classList.add('d-none');
+            document.getElementById('rangeInputs').classList.add('d-none');
+            document.getElementById('errorMsg').classList.add('d-none');
+        }
     });
 </script>
 

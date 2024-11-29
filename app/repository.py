@@ -81,3 +81,15 @@ class TodoRepository:
         await self._session.execute(
             delete(Todo).where(Todo.id == todo_id)
         )
+
+    async def delete_todos(self, skip: int, limit: int, start: int, end: int):
+        if not start and not end:
+            await self._session.execute(
+                delete(Todo)
+            )
+        else:
+            subquery = (select(Todo.id).order_by(desc(Todo.id)).offset(skip * limit + (start - 1)).limit(end - start + 1))
+
+            await self._session.execute(
+                delete(Todo).where(Todo.id.in_(subquery))
+            )
