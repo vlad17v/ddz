@@ -29,60 +29,28 @@
         <input type="file" class="form-control" id="image" name="image" accept="image/*">
     </div>
 
-
     <button type="submit" class="btn btn-success">Добавить</button>
 </form>
 
 <script>
     document.getElementById('todoForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+    e.preventDefault();
 
-        const title = document.getElementById('title').value;
-        const details = document.getElementById('details').value;
-        const tag = document.getElementById('tag').value;
-        const imageFile = document.getElementById('image').files[0];
+    const formData = new FormData(this);
 
-        const todoData = {
-            title: title,
-            details: details,
-            tag: tag
-        };
+    fetch('/todo/add/', {
+        method: 'POST',
+        body: formData // Отправляем FormData напрямую
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log('Успешно добавлено:', data);
+        window.location.href = '/todo/home/';
+    })
+    .catch(error => console.error('Ошибка:', error));
 
-        const reader = new FileReader();
-        reader.onloadend = function () {
-            todoData.image = reader.result;
-
-            fetch('/todo/add/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(todoData)
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log('Успешно:', data);
-                window.location.href = '/todo/home/';
-            })
-            .catch(error => console.error('Ошибка:', error));
-        };
-
-        if (imageFile) {
-            reader.readAsDataURL(imageFile);
-        } else {
-            fetch('/todo/add/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(todoData)
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log('Успешно:', data);
-                window.location.href = '/todo/home/';
-            })
-            .catch(error => console.error('Ошибка:', error));
-        }
-
-        this.reset();
-    });
+    this.reset();
+});
 </script>
 
 {% endblock content %}

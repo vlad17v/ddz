@@ -17,15 +17,20 @@ from fastapi import UploadFile
 from fastapi import Depends
 from fastapi import status
 from fastapi import HTTPException
+from fastapi import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
+from typing import Optional
+
 
 from app.database import get_async_uow_session
 from app.schemas import Todo
 from app.schemas import Tags
 from app.schemas import TodoSource
 from app.utils import export_todos
+from app.utils import load_image
 from app.utils import import_todos
 from app.uow import UnitOfWork
 
@@ -78,16 +83,28 @@ async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_asyn
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
-async def add_todo(todo: Todo, uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def add_todo(
+    title: str = Form(...),
+    details: str = Form(...),
+    tag: Tags = Form(...),
+    image: UploadFile = File(None),
+    uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
     """Add new todo
     """
-    logger.info(f"Creating todo: {todo}")
+    logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
+
+    if image and image.filename:
+        await load_image(image)
+
+
+    todo = Todo(title=title, details=details, tag=tag)
 
     await uow_session.todo.add_todo(todo.model_dump())
-    return {
+    return JSONResponse(content={
         "status": "success",
         "details": "Todo added"
-    }
+    })
 
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
@@ -109,10 +126,18 @@ async def get_todo(request: Request, todo_id: int, limit: int = 10, skip: int = 
 
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
-async def edit_todo(todo_id: int, todo_change: Todo,
-                    uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def edit_todo(todo_id: int,
+                    title: Optional[str] = Form(None),
+                    details: Optional[str] = Form(None),
+                    completed: Optional[bool] = Form(False),
+                    tag: Optional[Tags] = Form(None),
+                    created_at: Optional[datetime] = Form(None),
+                    image: UploadFile = File(None),
+                    uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
     """Edit todo
     """
+    todo_change = Todo(title = title, details = details, completed = completed, tag = tag, created_at = created_at)
     todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
@@ -120,6 +145,10 @@ async def edit_todo(todo_id: int, todo_change: Todo,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Not found todo by this id: {todo_id}"
         )
+
+    if image and image.filename:
+        print(image.filename)
+        await load_image(image)
 
     logger.info(f"Editting todo: {todo}")
 
@@ -233,15 +262,4 @@ async def import_file(file: UploadFile = File(...), uow_session: UnitOfWork = De
         await uow_session.todo.add_todo_object(todo)
 
     return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@todo_router.post("/export/")
-async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
-    todos = await uow_session.todo.get_all_todos()
-
-    export_todos(todos)
-
-    return FileResponse("data/todos.xlsx",
-                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
 

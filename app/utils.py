@@ -3,6 +3,7 @@ import os
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
+from fastapi import UploadFile
 
 from app.models import Todo
 from datetime import datetime
@@ -66,3 +67,10 @@ def import_todos(file_path) -> list[Todo]:
     workbook.close()
 
     return todos
+
+
+async def load_image(image: UploadFile) -> str:
+    file_location = os.path.join('./images/', image.filename)
+    with open(file_location, "wb") as file:
+        file.write(await image.read())
+

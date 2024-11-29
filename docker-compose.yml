@@ -26,6 +26,6 @@ services:
       - ./app:/code/app  # Монтируем только папку app
       - ./data:/code/data # Монтируем папку data для сохранения данных
       - ./scripts:/code/scripts # Монтируем папку scripts для доступа к скриптам
-
+      - ./images:/code/images
 volumes:
   postgres_data:

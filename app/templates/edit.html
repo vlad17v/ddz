@@ -69,12 +69,10 @@
         e.preventDefault();
 
         const formData = new FormData(this);
-        const todoData = Object.fromEntries(formData.entries());
 
         fetch('/todo/edit/{{ todo.id }}/', {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(todoData)
+            body: formData
         })
                 .then(res => res.json())
                 .then(data => {
