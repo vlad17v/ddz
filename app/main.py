@@ -8,7 +8,7 @@ from app.router import todo_router
 
 app = FastAPI()
 
-app.mount("/data", StaticFiles(directory="data"), name="data")
+# app.mount("/images", StaticFiles(directory="images"), name="images")
 @app.get("/")
 async def main_page():
     return RedirectResponse("/todo/home", status_code=303)
@@ -17,3 +17,4 @@ async def main_page():
 app.include_router(todo_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/images", StaticFiles(directory="images"), name="images")

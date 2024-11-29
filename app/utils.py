@@ -5,6 +5,8 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from fastapi import UploadFile
+from fastapi import HTTPException
+from fastapi import status
 import random
 import string
 from loguru import logger
@@ -73,21 +75,34 @@ def import_todos(file_path) -> list[Todo]:
     return todos
 
 
-async def load_image(image: UploadFile, random_filename: str):
+async def load_image(image: UploadFile, random_filename: str) -> None:
+    """Load image"""
     file_location = os.path.join('./images/', random_filename)
-    with open(file_location, "wb") as file:
-        file.write(await image.read())
+    try:
+        with open(file_location, "wb") as file:
+            file.write(await image.read())
+    except Exception as e:
 
-def generate_random_filename(length=10):
+        logger.error(f"Error saving image {random_filename}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image saving failed")
+
+
+def generate_random_filename(length: int = 10) -> str:
     """Generate a random filename of specified length."""
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
-async def delete_image(image_path: str):
+
+async def delete_image(image_path: str) -> None:
+    """Delete image"""
     try:
-        if os.path.exists("./images/"+image_path):
-            os.remove("./images/"+image_path)
+        full_path = os.path.join("./images/", image_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            logger.info(f"Image deleted successfully: {image_path}")
+        else:
+            logger.warning(f"Image not found for deletion: {image_path}")
     except Exception as e:
-        logger.error(f"Bad path: {e.decode()}")
+        logger.error(f"Error deleting image {image_path}: {e}")
 
 

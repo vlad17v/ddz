@@ -86,25 +86,29 @@ async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_asyn
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
 async def add_todo(
-    title: str = Form(...),
-    details: str = Form(...),
-    tag: Tags = Form(...),
-    image: UploadFile = File(None),
-    uow_session: UnitOfWork = Depends(get_async_uow_session)
+        title: str = Form(...),
+        details: str = Form(...),
+        tag: Tags = Form(...),
+        image: UploadFile = File(None),
+        uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
-    """Add new todo
-    """
+    """Add new todo"""
     logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
+    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1] if image else None
 
-    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
     if image and image.filename:
-        await load_image(image, random_filename)
+        try:
+            await load_image(image, random_filename)
+            logger.info(f"Image uploaded successfully: {random_filename}")
+        except Exception as e:
+            logger.error(f"Error uploading image: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed")
 
-
-
-    todo = Todo(title=title, details=details, tag=tag, image_path = random_filename)
-
+    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename)
     await uow_session.todo.add_todo(todo.model_dump())
+
+    logger.info("Todo added successfully")
+
     return JSONResponse(content={
         "status": "success",
         "details": "Todo added"
@@ -112,13 +116,17 @@ async def add_todo(
 
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
-async def get_todo(request: Request, todo_id: int, limit: int = 10, skip: int = 0,
-                   uow_session: UnitOfWork = Depends(get_async_uow_session)):
-    """Get todo
-    """
+async def get_todo(
+    request: Request,
+    todo_id: int,
+    limit: int = 10,
+    skip: int = 0,
+    uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
+    """Get todo"""
     todo = await uow_session.todo.get_todo(todo_id)
-
     if not todo:
+        logger.warning(f"Todo not found: {todo_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Not found todo by this id: {todo_id}"
@@ -136,12 +144,12 @@ async def edit_todo(todo_id: int,
                     completed: Optional[bool] = Form(False),
                     tag: Optional[Tags] = Form(None),
                     created_at: Optional[datetime] = Form(None),
+                    image_path: Optional[str] = Form(None),
                     image: UploadFile = File(None),
                     uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
     """Edit todo
     """
-    todo_change = Todo(title = title, details = details, completed = completed, tag = tag, created_at = created_at)
     todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
@@ -149,10 +157,17 @@ async def edit_todo(todo_id: int,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Not found todo by this id: {todo_id}"
         )
-
+    print(image_path)
     if image and image.filename:
         random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
+        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
+                           image_path=random_filename)
         await load_image(image, random_filename)
+        if todo.image_path is not None:
+            await delete_image(todo.image_path)
+    else:
+        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at, image_path=image_path)
+
 
 
     logger.info(f"Editting todo: {todo}")
@@ -181,7 +196,6 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session:
 
     logger.info(f"Deleting todo: {todo}")
     if todo.image_path is not None:
-        print('11111111111111111111')
         await delete_image(todo.image_path)
 
     await uow_session.todo.delete_todo(todo_id)
