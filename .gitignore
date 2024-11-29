@@ -1,5 +1,6 @@
 __pycache__
 data/
+images/
 .idea
 venv
 .DS_Store

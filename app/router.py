@@ -17,9 +17,11 @@ from fastapi import UploadFile
 from fastapi import Depends
 from fastapi import status
 from fastapi import HTTPException
+from fastapi import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi.responses import FileResponse
+
 
 from app.database import get_async_uow_session
 from app.schemas import Todo
@@ -216,7 +218,11 @@ async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(ge
 
 
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
-async def generate_todos(count: int = 20):
+async def show_generate(request: Request):
+    return templates.TemplateResponse("generate.html", {"request": request})
+
+@todo_router.post("/generate/", status_code=status.HTTP_200_OK)
+async def generate_todos(count: int = Form(20)):
     """Generate a number of todos by calling a bash script."""
     logger.info(f"Generating {count} todos")
     script_directory = os.path.dirname(__file__)
