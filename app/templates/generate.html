@@ -4,9 +4,9 @@
 
 <form id="todoForm" class="d-flex flex-column gap-2">
     <div class="form-floating">
-        <input minlength="1" maxlength="200" type="text" class="form-control" id="count" name="count"
-               placeholder="Введите задачу" required>
-        <label for="title">Введите количество todo</label>
+        <input type="number" class="form-control" id="count" name="count"
+               placeholder="Введите количество todo" required min="1" max="200">
+        <label for="count">Введите количество todo</label>
     </div>
 
 
