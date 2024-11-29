@@ -1,9 +1,13 @@
 import os
+from linecache import cache
 
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from fastapi import UploadFile
+import random
+import string
+from loguru import logger
 
 from app.models import Todo
 from datetime import datetime
@@ -69,8 +73,21 @@ def import_todos(file_path) -> list[Todo]:
     return todos
 
 
-async def load_image(image: UploadFile) -> str:
-    file_location = os.path.join('./images/', image.filename)
+async def load_image(image: UploadFile, random_filename: str):
+    file_location = os.path.join('./images/', random_filename)
     with open(file_location, "wb") as file:
         file.write(await image.read())
+
+def generate_random_filename(length=10):
+    """Generate a random filename of specified length."""
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(length))
+
+async def delete_image(image_path: str):
+    try:
+        if os.path.exists("./images/"+image_path):
+            os.remove("./images/"+image_path)
+    except Exception as e:
+        logger.error(f"Bad path: {e.decode()}")
+
 

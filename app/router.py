@@ -29,10 +29,12 @@ from app.database import get_async_uow_session
 from app.schemas import Todo
 from app.schemas import Tags
 from app.schemas import TodoSource
-from app.utils import export_todos
+from app.utils import export_todos, generate_random_filename, delete_image
 from app.utils import load_image
 from app.utils import import_todos
+from app.utils import delete_image
 from app.uow import UnitOfWork
+
 
 todo_router = APIRouter(
     prefix="/todo",
@@ -94,11 +96,13 @@ async def add_todo(
     """
     logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
 
+    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
     if image and image.filename:
-        await load_image(image)
+        await load_image(image, random_filename)
 
 
-    todo = Todo(title=title, details=details, tag=tag)
+
+    todo = Todo(title=title, details=details, tag=tag, image_path = random_filename)
 
     await uow_session.todo.add_todo(todo.model_dump())
     return JSONResponse(content={
@@ -147,8 +151,9 @@ async def edit_todo(todo_id: int,
         )
 
     if image and image.filename:
-        print(image.filename)
-        await load_image(image)
+        random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
+        await load_image(image, random_filename)
+
 
     logger.info(f"Editting todo: {todo}")
 
@@ -175,6 +180,10 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session:
         )
 
     logger.info(f"Deleting todo: {todo}")
+    if todo.image_path is not None:
+        print('11111111111111111111')
+        await delete_image(todo.image_path)
+
     await uow_session.todo.delete_todo(todo_id)
     return {
         "status": "success",
