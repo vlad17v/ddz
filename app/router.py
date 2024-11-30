@@ -63,18 +63,25 @@ async def get_home(request: Request):
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session),
-                    limit: int = 10, skip: int = 0):
-    count = await uow_session.todo.get_count_todos()
+                    limit: int = 10, skip: int = 0, creation_date_start: str = None, creation_date_end: str = None,
+                    tag: Tags = None):
+    creation_date_start = datetime.strptime(creation_date_start, "%Y-%m-%d") if creation_date_start else None
+    creation_date_end = datetime.strptime(creation_date_end, "%Y-%m-%d") if creation_date_end else None
+
+    count = await uow_session.todo.get_count_todos(creation_date_start, creation_date_end, tag)
     pages = math.ceil(count / limit)
 
     if skip > pages:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such page")
+    if not pages:
+        pages = 1
 
-    todos = await uow_session.todo.get_todos(limit, skip)
+    todos = await uow_session.todo.get_todos(limit, skip, creation_date_start, creation_date_end, tag)
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
-                                       "limit": limit})
+                                       "limit": limit, "creation_date_start": creation_date_start,
+                                       "creation_date_end": creation_date_end, "tag": tag})
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
@@ -126,6 +133,8 @@ async def edit_todo(todo_id: int, todo_change: Todo,
     if todo_change.completed:
         todo_change.completed_at = datetime.utcnow()
 
+    todo_change.source = todo.source
+
     await uow_session.todo.update_todo(todo_id, todo_change.model_dump())
     return {
         "status": "success",
@@ -150,6 +159,25 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session:
     return {
         "status": "success",
         "details": "Todo deleted",
+        "limit": limit,
+        "skip": skip
+    }
+
+
+@todo_router.delete("/delete/", status_code=status.HTTP_200_OK)
+async def delete_todos(uow_session: UnitOfWork = Depends(get_async_uow_session),
+                       limit: int = 10, skip: int = 0, start: int = 0, end: int = 0):
+    count = await uow_session.todo.get_count_todos()
+    pages = math.ceil(count / limit)
+
+    if skip > pages or start > end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect range")
+
+
+    await uow_session.todo.delete_todos(skip, limit, start, end)
+    return {
+        "status": "success",
+        "details": "Todos deleted",
         "limit": limit,
         "skip": skip
     }
