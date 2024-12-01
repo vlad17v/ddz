@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy import insert
@@ -6,29 +7,55 @@ from sqlalchemy import desc
 from sqlalchemy import func
 from sqlalchemy import update
 from sqlalchemy import delete
+
 from app.models import Todo
 from app.models import User
+from app.schemas import Tags
 
 
 class TodoRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_count_todos(self):
-        count_todo = await self._session.execute(
-            select(func.count()).select_from(Todo)
-        )
+    async def get_count_todos(self, creation_date_start: datetime = None,
+                           creation_date_end: datetime = None, tag: Tags = None):
+        query = select(func.count()).select_from(Todo)
+
+        if creation_date_start:
+            query = query.where(Todo.created_at >= creation_date_start)
+        if creation_date_end:
+            query = query.where(Todo.created_at <= creation_date_end)
+        if tag:
+            query = query.where(Todo.tag == tag)
+
+        count_todo = await self._session.execute(query)
         data = count_todo.scalar()
         return data
 
+    async def delete_todos(self, skip: int, limit: int, start: int, end: int):
+        if not start and not end:
+            await self._session.execute(
+                delete(Todo)
+            )
+        else:
+            subquery = (select(Todo.id).order_by(desc(Todo.id)).offset(skip * limit + (start - 1)).limit(end - start + 1))
+
+            await self._session.execute(
+                delete(Todo).where(Todo.id.in_(subquery))
+            )
+
     async def get_todos(self, limit: int, skip: int, creation_date_start: datetime = None,
-                        creation_date_end: datetime = None):
+
+        creation_date_end: datetime = None, tag: Tags = None):
+
         query = select(Todo).order_by(desc(Todo.id)).offset(skip * limit).limit(limit)
 
         if creation_date_start:
             query = query.where(Todo.created_at >= creation_date_start)
         if creation_date_end:
             query = query.where(Todo.created_at <= creation_date_end)
+        if tag:
+            query = query.where(Todo.tag == tag)
 
         find_todos = await self._session.execute(query)
         data = find_todos.scalars().all()
@@ -87,3 +114,4 @@ class AuthRepository:
         await self._session.execute(
             update(User).where(User.name == username).values(disabled=value)
         )
+
