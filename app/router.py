@@ -1,6 +1,8 @@
 import base64
 import math
 import io
+from typing import Annotated
+
 import squarify
 import os
 from datetime import datetime
@@ -22,11 +24,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi.responses import FileResponse
 
-
+from app.auth import get_current_active_user
 from app.database import get_async_uow_session
+from app.schemas import User
 from app.schemas import Todo
 from app.schemas import Tags
-from app.schemas import TodoSource
 from app.utils import export_todos
 from app.utils import import_todos
 from app.uow import UnitOfWork
@@ -51,6 +53,14 @@ async def get_home(request: Request):
     logger.info("In home")
 
     return templates.TemplateResponse("index.html",
+                                      {"request": request})
+
+
+@todo_router.get("/401", status_code=status.HTTP_200_OK)
+async def page_401(request: Request):
+    """Main page with todo list
+    """
+    return templates.TemplateResponse("401.html",
                                       {"request": request})
 
 
@@ -87,7 +97,8 @@ async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_asyn
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
-async def add_todo(todo: Todo, uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def add_todo(todo: Todo, current_user: Annotated[User, Depends(get_current_active_user)],
+                   uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Add new todo
     """
     logger.info(f"Creating todo: {todo}")
@@ -145,7 +156,8 @@ async def edit_todo(todo_id: int, todo_change: Todo,
 
 
 @todo_router.delete("/delete/{todo_id}/", status_code=status.HTTP_200_OK)
-async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0,
+                      uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Delete todo
     """
     todo = await uow_session.todo.get_todo(todo_id)
@@ -257,7 +269,7 @@ async def visualize_todos(request: Request):
 
 
 @todo_router.post("/import")
-async def import_file(file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def import_file(current_user: Annotated[User, Depends(get_current_active_user)], file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
     with open(file.filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

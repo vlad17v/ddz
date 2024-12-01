@@ -29,3 +29,16 @@ class Todo(Base):
 
     def __repr__(self):
         return f'<Todo {self.id}>'
+
+
+class User(Base):
+    """Todo model
+    """
+    __tablename__ = 'users'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    password: Mapped[str] = mapped_column(nullable=False)
+    disabled: Mapped[bool] = mapped_column(nullable=False, default=False)
+
+    def __repr__(self):
+        return f'<User {self.id}>'

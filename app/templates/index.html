@@ -40,14 +40,26 @@
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(todoData)
         })
-                .then(res => res.json())
+                .then(res => {
+                    console.log(res.status)
+
+                    if (res.status == 401) {
+                        window.location.href = '/todo/401/';
+                        return
+                    }
+                    return res.json()
+                })
                 .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
+                    if (data == null){
+                        window.location.href = '/todo/401/';
+                    } else {
+                        console.log('Успешно:', data);
+                        window.location.href = '/todo/home/';
+                    }
                 })
                 .catch(error => console.error('Ошибка:', error));
 
-        this.reset();
+        // this.reset();
     });
 </script>
 
