@@ -95,7 +95,7 @@ async def add_todo(
 ):
     """Add new todo"""
     logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
-    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1] if image else None
+    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1] if image.filename else None
 
     if image and image.filename:
         try:
