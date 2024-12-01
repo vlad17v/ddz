@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repository import TodoRepository
+from app.repository import AuthRepository
 
 
 class UnitOfWork:
@@ -26,3 +27,7 @@ class UnitOfWork:
     @property
     def todo(self) -> TodoRepository:
         return TodoRepository(self._session)
+
+    @property
+    def auth(self) -> AuthRepository:
+        return AuthRepository(self._session)

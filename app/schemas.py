@@ -41,3 +41,9 @@ class Todo(BaseModel):
             ]
         }
     }
+
+
+class User(BaseModel):
+    name: str = Field()
+    password: str = Field()
+    disabled: bool = Field()

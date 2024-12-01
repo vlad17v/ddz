@@ -16,6 +16,16 @@ from datetime import datetime
 
 from app.schemas import TodoSource
 
+from fastapi.security import OAuth2
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
+from fastapi import Request
+from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import HTTPException
+from fastapi import status
+from typing import Optional
+from typing import Dict
+
+
 
 def export_todos(todos: list[Todo]):
     if not os.path.exists("data"):
@@ -34,12 +44,12 @@ def export_todos(todos: list[Todo]):
 
     for todo in todos:
         ws.append([
-                   todo.title,
-                   todo.details,
-                   "Выполнено" if todo.completed else "Не выполнено",
-                   todo.tag,
-                   todo.created_at.strftime("%Y-%m-%d %H:%M:%S") if todo.created_at is not None else "",
-                   todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else ""])
+            todo.title,
+            todo.details,
+            "Выполнено" if todo.completed else "Не выполнено",
+            todo.tag,
+            todo.created_at.strftime("%Y-%m-%d %H:%M:%S") if todo.created_at is not None else "",
+            todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else ""])
 
     wb.save("data/todos.xlsx")
 
@@ -106,3 +116,31 @@ async def delete_image(image_path: str) -> None:
         logger.error(f"Error deleting image {image_path}: {e}")
 
 
+
+class OAuth2PasswordBearerWithCookie(OAuth2):
+    def __init__(
+            self,
+            tokenUrl: str,
+            scheme_name: Optional[str] = None,
+            scopes: Optional[Dict[str, str]] = None,
+            auto_error: bool = True,
+    ):
+        if not scopes:
+            scopes = {}
+        flows = OAuthFlowsModel(password={"tokenUrl": tokenUrl, "scopes": scopes})
+        super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
+
+    async def __call__(self, request: Request) -> Optional[str]:
+        authorization: str = request.cookies.get("access_token")  # changed to accept access token from httpOnly Cookie
+
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            else:
+                return None
+        return param

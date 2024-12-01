@@ -1,6 +1,8 @@
 import base64
 import math
 import io
+from typing import Annotated
+
 import squarify
 import os
 from datetime import datetime
@@ -25,11 +27,15 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 
 
+from app.auth import get_current_active_user
 from app.database import get_async_uow_session
+from app.schemas import User
 from app.schemas import Todo
 from app.schemas import Tags
 from app.schemas import TodoSource
-from app.utils import export_todos, generate_random_filename, delete_image
+from app.utils import export_todos
+from app.utils import generate_random_filename
+from app.utils import delete_image
 from app.utils import load_image
 from app.utils import import_todos
 from app.utils import delete_image
@@ -59,6 +65,14 @@ async def get_home(request: Request):
                                       {"request": request})
 
 
+@todo_router.get("/401", status_code=status.HTTP_200_OK)
+async def page_401(request: Request):
+    """Main page with todo list
+    """
+    return templates.TemplateResponse("401.html",
+                                      {"request": request})
+
+
 @todo_router.get("/info-tasks/", status_code=status.HTTP_200_OK)
 async def get_home(request: Request):
     """Main page with todo list
@@ -70,18 +84,25 @@ async def get_home(request: Request):
 
 @todo_router.get("/list/", status_code=status.HTTP_200_OK)
 async def get_todos(request: Request, uow_session: UnitOfWork = Depends(get_async_uow_session),
-                    limit: int = 10, skip: int = 0):
-    count = await uow_session.todo.get_count_todos()
+                    limit: int = 10, skip: int = 0, creation_date_start: str = None, creation_date_end: str = None,
+                    tag: Tags = None):
+    creation_date_start = datetime.strptime(creation_date_start, "%Y-%m-%d") if creation_date_start else None
+    creation_date_end = datetime.strptime(creation_date_end, "%Y-%m-%d") if creation_date_end else None
+
+    count = await uow_session.todo.get_count_todos(creation_date_start, creation_date_end, tag)
     pages = math.ceil(count / limit)
 
     if skip > pages:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such page")
+    if not pages:
+        pages = 1
 
-    todos = await uow_session.todo.get_todos(limit, skip)
+    todos = await uow_session.todo.get_todos(limit, skip, creation_date_start, creation_date_end, tag)
 
     return templates.TemplateResponse("todos.html",
                                       {"request": request, "todos": todos, "page": skip, "pages": pages,
-                                       "limit": limit})
+                                       "limit": limit, "creation_date_start": creation_date_start,
+                                       "creation_date_end": creation_date_end, "tag": tag})
 
 
 @todo_router.post("/add/", status_code=status.HTTP_201_CREATED)
@@ -176,6 +197,8 @@ async def edit_todo(todo_id: int,
     if todo_change.completed:
         todo_change.completed_at = datetime.utcnow()
 
+    todo_change.source = todo.source
+
     await uow_session.todo.update_todo(todo_id, todo_change.model_dump())
     return {
         "status": "success",
@@ -184,7 +207,8 @@ async def edit_todo(todo_id: int,
 
 
 @todo_router.delete("/delete/{todo_id}/", status_code=status.HTTP_200_OK)
-async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0,
+                      uow_session: UnitOfWork = Depends(get_async_uow_session)):
     """Delete todo
     """
     todo = await uow_session.todo.get_todo(todo_id)
@@ -203,6 +227,25 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0, uow_session:
     return {
         "status": "success",
         "details": "Todo deleted",
+        "limit": limit,
+        "skip": skip
+    }
+
+
+@todo_router.delete("/delete/", status_code=status.HTTP_200_OK)
+async def delete_todos(uow_session: UnitOfWork = Depends(get_async_uow_session),
+                       limit: int = 10, skip: int = 0, start: int = 0, end: int = 0):
+    count = await uow_session.todo.get_count_todos()
+    pages = math.ceil(count / limit)
+
+    if skip > pages or start > end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect range")
+
+
+    await uow_session.todo.delete_todos(skip, limit, start, end)
+    return {
+        "status": "success",
+        "details": "Todos deleted",
         "limit": limit,
         "skip": skip
     }
@@ -241,7 +284,11 @@ async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(ge
 
 
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
-async def generate_todos(count: int = 20):
+async def show_generate(request: Request):
+    return templates.TemplateResponse("generate.html", {"request": request})
+
+@todo_router.post("/generate/", status_code=status.HTTP_200_OK)
+async def generate_todos(count: int = Form(20)):
     """Generate a number of todos by calling a bash script."""
     logger.info(f"Generating {count} todos")
     script_directory = os.path.dirname(__file__)
@@ -276,7 +323,7 @@ async def visualize_todos(request: Request):
 
 
 @todo_router.post("/import")
-async def import_file(file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def import_file(current_user: Annotated[User, Depends(get_current_active_user)], file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
     with open(file.filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

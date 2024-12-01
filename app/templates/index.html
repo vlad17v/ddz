@@ -36,22 +36,34 @@
     document.getElementById('todoForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
-    const formData = new FormData(this);
-    formData.append('source', 'Созданная')
+        const formData = new FormData(this);
+        formData.append('source', 'Созданная')
 
-    fetch('/todo/add/', {
-        method: 'POST',
-        body: formData // Отправляем FormData напрямую
-    })
-    .then(res => res.json())
-    .then(data => {
-        console.log('Успешно добавлено:', data);
-        window.location.href = '/todo/home/';
-    })
-    .catch(error => console.error('Ошибка:', error));
+        fetch('/todo/add/', {
+            method: 'POST',
+            body: formData
+        })
+                .then(res => {
+                    console.log(res.status)
 
-    this.reset();
-});
+                    if (res.status == 401) {
+                        window.location.href = '/todo/401/';
+                        return
+                    }
+                    return res.json()
+                })
+                .then(data => {
+                    if (data == null){
+                        window.location.href = '/todo/401/';
+                    } else {
+                        console.log('Успешно:', data);
+                        window.location.href = '/todo/home/';
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
+
+        this.reset();
+    });
 </script>
 
 {% endblock content %}
