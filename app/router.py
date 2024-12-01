@@ -90,6 +90,7 @@ async def add_todo(
         details: str = Form(...),
         tag: Tags = Form(...),
         image: UploadFile = File(None),
+        source: str = Form(...),
         uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
     """Add new todo"""
@@ -102,9 +103,9 @@ async def add_todo(
             logger.info(f"Image uploaded successfully: {random_filename}")
         except Exception as e:
             logger.error(f"Error uploading image: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed", source=source)
 
-    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename)
+    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename, source=source)
     await uow_session.todo.add_todo(todo.model_dump())
 
     logger.info("Todo added successfully")
@@ -139,12 +140,12 @@ async def get_todo(
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
 async def edit_todo(todo_id: int,
-                    title: Optional[str] = Form(None),
-                    details: Optional[str] = Form(None),
-                    completed: Optional[bool] = Form(False),
-                    tag: Optional[Tags] = Form(None),
-                    created_at: Optional[datetime] = Form(None),
-                    image_path: Optional[str] = Form(None),
+                    title: str = Form(None),
+                    details: str = Form(None),
+                    completed: bool = Form(False),
+                    tag: Tags = Form(None),
+                    created_at: datetime = Form(None),
+                    image_path: str = Form(None),
                     image: UploadFile = File(None),
                     uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
@@ -266,7 +267,7 @@ async def generate_todos(count: int = 20):
         raise HTTPException(status_code=500, detail="An error occurred while generating todos")
 
 
-@todo_router.get("/export/", status_code=status.HTTP_200_OK)
+@todo_router.post("/export", status_code=status.HTTP_200_OK)
 async def visualize_todos(request: Request):
     """Page export and import todos from excel file
     """
