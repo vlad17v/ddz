@@ -73,7 +73,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 @auth_router.get("/logout")
 async def login(current_user: Annotated[User, Depends(get_current_active_user)],
                 uow_session: UnitOfWork = Depends(get_async_uow_session), ):
-    response = RedirectResponse("/", status_code=302)
+    response = RedirectResponse("/auth/login", status_code=302)
     response.delete_cookie("access_token")
     await uow_session.auth.set_disabled(current_user.name, True)
     return response
