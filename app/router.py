@@ -267,7 +267,7 @@ async def generate_todos(count: int = 20):
         raise HTTPException(status_code=500, detail="An error occurred while generating todos")
 
 
-@todo_router.post("/export", status_code=status.HTTP_200_OK)
+@todo_router.get("/export/", status_code=status.HTTP_200_OK)
 async def visualize_todos(request: Request):
     """Page export and import todos from excel file
     """
@@ -287,3 +287,12 @@ async def import_file(file: UploadFile = File(...), uow_session: UnitOfWork = De
 
     return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
 
+
+@todo_router.post("/export/")
+async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
+    todos = await uow_session.todo.get_all_todos()
+
+    export_todos(todos)
+
+    return FileResponse("data/todos.xlsx",
+                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
