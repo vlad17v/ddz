@@ -9,7 +9,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_7:/var/lib/postgresql/data
 
   web:
     build:
@@ -28,4 +28,4 @@ services:
       - ./scripts:/code/scripts # Монтируем папку scripts для доступа к скриптам
 
 volumes:
-  postgres_data:
+  postgres_data_7:

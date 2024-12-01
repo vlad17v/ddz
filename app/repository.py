@@ -7,6 +7,8 @@ from sqlalchemy import func
 from sqlalchemy import update
 from sqlalchemy import delete
 from app.models import Todo
+from app.models import User
+
 
 class TodoRepository:
     def __init__(self, session: AsyncSession):
@@ -19,7 +21,8 @@ class TodoRepository:
         data = count_todo.scalar()
         return data
 
-    async def get_todos(self, limit: int, skip: int, creation_date_start: datetime = None, creation_date_end: datetime = None):
+    async def get_todos(self, limit: int, skip: int, creation_date_start: datetime = None,
+                        creation_date_end: datetime = None):
         query = select(Todo).order_by(desc(Todo.id)).offset(skip * limit).limit(limit)
 
         if creation_date_start:
@@ -66,4 +69,21 @@ class TodoRepository:
     async def delete_todo(self, todo_id: int):
         await self._session.execute(
             delete(Todo).where(Todo.id == todo_id)
+        )
+
+
+class AuthRepository:
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def get_user(self, username: str) -> User:
+        find_user = await self._session.execute(
+            select(User).where(User.name == username)
+        )
+        data = find_user.scalars().one_or_none()
+        return data
+
+    async def set_disabled(self, username: str, value: bool) -> User:
+        await self._session.execute(
+            update(User).where(User.name == username).values(disabled=value)
         )
