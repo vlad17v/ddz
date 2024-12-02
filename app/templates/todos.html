@@ -162,18 +162,20 @@
     {% endfor %}
 </ul>
 
-<nav>
-    <ul class="pagination">
-        {% for i in range(pages) %}
-        <li class="page-item {% if i == page %}active{% endif %}">
-            <a class="page-link"
-               href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
-                {{ i + 1 }}
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-</nav>
+<div class="d-flex justify-content-between align-items-center">
+
+    <nav>
+        <ul class="pagination">
+            {% for i in range(pages) %}
+            <li class="page-item {% if i == page %}active{% endif %}">
+                <a class="page-link"
+                   href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
+                    {{ i + 1 }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
 
     <div class="dropdown">
         <button class="btn btn-danger dropdown-toggle px-4" type="button" onclick="toggleDeleteOptions()">
@@ -236,7 +238,6 @@
             closeShowModal(action)
         });
     });
-
 
     document.querySelectorAll('.completedTask').forEach(checkbox => {
         checkbox.addEventListener('change', function () {
