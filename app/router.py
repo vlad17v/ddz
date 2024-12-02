@@ -132,10 +132,10 @@ async def add_todo(
 
     logger.info("Todo added successfully")
 
-    return JSONResponse(content={
+    return {
         "status": "success",
         "details": "Todo added"
-    })
+    }
 
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
