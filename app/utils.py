@@ -1,41 +1,34 @@
 import os
-from linecache import cache
+import hashlib
+import random
+import string
+from datetime import datetime
+from typing import Optional
+from typing import Dict
 
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from fastapi import UploadFile
-from fastapi import HTTPException
-from fastapi import status
-import random
-import string
-from loguru import logger
-
-from app.models import Todo
-from datetime import datetime
-
-from app.schemas import TodoSource
-
 from fastapi.security import OAuth2
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi import Request
 from fastapi.security.utils import get_authorization_scheme_param
 from fastapi import HTTPException
 from fastapi import status
-from typing import Optional
-from typing import Dict
+from loguru import logger
 
+from app.models import Todo
+from app.schemas import TodoSource
 
 
 def export_todos(todos: list[Todo]):
-    if not os.path.exists("data"):
-        os.mkdir("data")
-
     wb = Workbook()
     wb.remove(wb.active)
     ws = wb.create_sheet("todos", 0)
 
-    headers = ["title", "details", "completed", "tag", "created_at", "completed_at"]
+    headers = ["title", "details", "completed", "tag", "created_at", "completed_at", "source", "image_path",
+               "image_hash"]
     for index, header in enumerate(headers):
         ws.column_dimensions[f"{chr(index + 65)}"].width = len(header) + 5
     ws.append(headers)
@@ -49,7 +42,19 @@ def export_todos(todos: list[Todo]):
             "Выполнено" if todo.completed else "Не выполнено",
             todo.tag,
             todo.created_at.strftime("%Y-%m-%d %H:%M:%S") if todo.created_at is not None else "",
-            todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else ""])
+            todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else "",
+            todo.source,
+            todo.image_path,
+            todo.image_hash])
+
+    column_index = None
+    for cell in ws[1]:
+        if cell.value == 'image_hash':
+            column_index = cell.column_letter
+            break
+
+    if column_index:
+        ws.column_dimensions[column_index].hidden = True
 
     wb.save("data/todos.xlsx")
 
@@ -59,9 +64,18 @@ def import_todos(file_path) -> list[Todo]:
     sheet = workbook.active
 
     todos = []
+    column_index = None
+
+    for cell in sheet[1]:
+        if cell.value == 'image_hash':
+            column_index = cell.column_letter
+            break
+
+    if column_index:
+        sheet.column_dimensions[column_index].hidden = False
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        title, details, completed, tag, created_at, completed_at = row
+        title, details, completed, tag, created_at, completed_at, source, image_path, image_hash = row
 
         if not completed and completed_at is not None:
             print(f"Ошибка: Задача с ID {id} не завершена, но дата выполнения указана.")
@@ -78,11 +92,22 @@ def import_todos(file_path) -> list[Todo]:
         todo.created_at = created_at
         todo.completed_at = completed_at
         todo.source = TodoSource.imported
+        todo.image_path = image_path
+        todo.image_hash = image_hash
         todos.append(todo)
 
     workbook.close()
 
     return todos
+
+
+async def hash_image(image: UploadFile):
+    try:
+        img_bytes = await image.read()
+        img_hash = hashlib.md5(img_bytes).hexdigest()
+    except Exception as e:
+        raise ValueError(f"Cannot identify image file: {e}")
+    return img_hash
 
 
 async def load_image(image: UploadFile, random_filename: str) -> None:
@@ -115,6 +140,13 @@ async def delete_image(image_path: str) -> None:
     except Exception as e:
         logger.error(f"Error deleting image {image_path}: {e}")
 
+
+def create_dirs():
+    if not os.path.exists("data"):
+        os.mkdir("data")
+
+    if not os.path.exists("images"):
+        os.mkdir("images")
 
 
 class OAuth2PasswordBearerWithCookie(OAuth2):

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from typing import Optional
 
-class TodoSource(Enum):
+class TodoSource(str, Enum):
     created = "Созданная"
     generated = "Сгенерированная"
     imported = "Импортированная"
