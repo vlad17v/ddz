@@ -154,9 +154,12 @@ async def get_todo(
             detail=f"Not found todo by this id: {todo_id}"
         )
 
+    images = await uow_session.todo.get_all_image_paths()
+
     logger.info(f"Getting todo: {todo}")
     return templates.TemplateResponse("edit.html",
-                                      {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip})
+                                      {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip, "images": images})
+
 
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
@@ -167,11 +170,11 @@ async def edit_todo(todo_id: int,
                     tag: Tags = Form(None),
                     created_at: datetime = Form(None),
                     image_path: str = Form(None),
+                    existing_image: str = Form(None),
                     image: UploadFile = File(None),
                     uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
-    """Edit todo
-    """
+    """Edit todo"""
     todo = await uow_session.todo.get_todo(todo_id)
 
     if not todo:
@@ -179,7 +182,7 @@ async def edit_todo(todo_id: int,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Not found todo by this id: {todo_id}"
         )
-    print(image_path)
+
     if image and image.filename:
         random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
         todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
@@ -187,10 +190,12 @@ async def edit_todo(todo_id: int,
         await load_image(image, random_filename)
         if todo.image_path is not None:
             await delete_image(todo.image_path)
+    elif existing_image:
+        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
+                           image_path=existing_image)
     else:
-        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at, image_path=image_path)
-
-
+        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
+                           image_path=image_path)
 
     logger.info(f"Editting todo: {todo}")
 
