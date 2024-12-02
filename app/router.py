@@ -116,9 +116,10 @@ async def add_todo(
 ):
     """Add new todo"""
     logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
-    random_filename = generate_random_filename() + "." + image.filename.split('.')[-1] if image.filename else None
 
+    random_filename = None
     if image and image.filename:
+        random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
         try:
             await load_image(image, random_filename)
             logger.info(f"Image uploaded successfully: {random_filename}")
@@ -180,6 +181,7 @@ async def edit_todo(todo_id: int,
             detail=f"Not found todo by this id: {todo_id}"
         )
     print(image_path)
+    random_filename = None
     if image and image.filename:
         random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
         todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
