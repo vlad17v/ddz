@@ -22,14 +22,9 @@ for ((i=1; i <= COUNT; i++)); do
     random_index_tags=$(( RANDOM % ${#tags[@]} ))
     tag="${tags[$random_index_tags]}"
 
-    curl -X 'POST' \
-      'http://localhost:8000/todo/add/' \
-      -H 'accept: application/json' \
-      -H 'Content-Type: application/json' \
-      -d '{
-            "title": "'"${title}"'",
-            "details": "'"${detail}"'",
-            "tag": "'"${tag}"'",
-            "source": "Сгенерированная"
-          }'
+    curl -X POST 'http://localhost:8000/todo/add/' \
+        -F "title=${title}" \
+        -F "details=${detail}" \
+        -F "tag=${tag}" \
+        -F "source=Сгенерированная"
 done

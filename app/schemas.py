@@ -2,7 +2,7 @@ from enum import Enum
 from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
-
+from typing import Optional
 
 class TodoSource(Enum):
     created = "Созданная"
@@ -24,6 +24,7 @@ class Todo(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: datetime | None = None
     source: TodoSource = Field(default=TodoSource.created)
+    image_path: str | None = Field(default=None)
 
     model_config = {
         "json_schema_extra": {

@@ -4,6 +4,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy import DateTime
+from sqlalchemy import String
 from sqlalchemy.sql import func
 
 from app.schemas import Tags
@@ -26,7 +27,7 @@ class Todo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source: Mapped[TodoSource] = mapped_column(nullable=False, default=TodoSource.created)
-
+    image_path: Mapped[str | None] = mapped_column(nullable=True, default=None)
     def __repr__(self):
         return f'<Todo {self.id}>'
 

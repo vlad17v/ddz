@@ -23,9 +23,9 @@ services:
     depends_on:
       - db
     volumes:
-      - ./app:/code/app  # Монтируем только папку app
-      - ./data:/code/data # Монтируем папку data для сохранения данных
-      - ./scripts:/code/scripts # Монтируем папку scripts для доступа к скриптам
-
+      - ./app:/code/app
+      - ./data:/code/data
+      - ./scripts:/code/scripts
+      - ./images:/code/images
 volumes:
   postgres_data_7:

@@ -130,6 +130,10 @@
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+        {% if todo.image_path %}
+            <img src="{{ url_for('images', path=todo.image_path) }}" style="width: 50px; height: 50px;">
+        {% endif %}
+
         {% if todo.completed %}
         <strike>{{ todo.title }}</strike>
         {% else %}
@@ -144,7 +148,8 @@
             <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
             <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"
                    data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
-                   data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed
+                   data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" data-todo-date="{{ todo.created_at }}"
+                   data-todo-image="{{ todo.image_path }}" {% if todo.completed
                    %}checked{% endif %}>
         </div>
 
@@ -239,11 +244,20 @@
             const todoTitle = this.dataset.todoTitle;
             const todoDetails = this.dataset.todoDetails;
             const todoTag = this.dataset.todoTag;
-
+            const todoDate = this.dataset.todoDate;
+            const todoImage = this.dataset.todoImage;
+            const formData = new FormData();
+            formData.append('id', todoId);
+            formData.append('title', todoTitle);
+            formData.append('details', todoDetails);
+            formData.append('tag', todoTag);
+            formData.append('completed', this.checked)
+            formData.append('created_at', todoDate)
+            formData.append('image_path', todoImage)
+            console.log(todoImage)
             fetch(`/todo/edit/${todoId}/`, {
                 method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag})
+                body: formData
             })
                 .then(res => res.json())
                 .then(data => {
