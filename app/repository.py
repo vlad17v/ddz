@@ -115,3 +115,7 @@ class AuthRepository:
             update(User).where(User.name == username).values(disabled=value)
         )
 
+    async def add_user(self, user: User):
+        self._session.add(user)
+        await self._session.commit()
+
