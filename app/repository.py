@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy import distinct
 from sqlalchemy import insert
 from sqlalchemy import desc
 from sqlalchemy import func
@@ -97,6 +98,13 @@ class TodoRepository:
         await self._session.execute(
             delete(Todo).where(Todo.id == todo_id)
         )
+
+    async def get_all_image_paths(self):
+        find_images = await self._session.execute(
+            select(distinct(Todo.image_path)).where(Todo.image_path.isnot(None))
+        )
+        data = find_images.scalars().all()
+        return data
 
 
 class AuthRepository:
