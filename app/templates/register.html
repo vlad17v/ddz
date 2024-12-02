@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToDo App</title>
+    <title>ToDo App - Register</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
     <style>
@@ -22,7 +22,7 @@
             }
         }
 
-        .login-button {
+        .register-button {
             margin-top: 10px;
         }
     </style>
@@ -30,25 +30,24 @@
 <body class="text-center">
 
 <main class="container w-50 center">
-    <form action="/auth/token" method="post">
-        <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
+    <form action="/auth/register" method="post">
+        <h1 class="h3 mb-3 fw-normal">Register</h1>
 
         <div class="form-floating" style="margin-bottom: 10px">
-            <input type="text" class="form-control" id="floatingInput" placeholder="chiiriill" name="username">
+            <input type="text" class="form-control" id="floatingInput" placeholder="chiiriill" name="username" required>
             <label for="floatingInput">Username</label>
         </div>
         <div class="form-floating">
-            <input type="password" class="form-control" id="floatingPassword" placeholder="Password" name="password">
+            <input type="password" class="form-control" id="floatingPassword" placeholder="Password" name="password" required>
             <label for="floatingPassword">Password</label>
         </div>
 
-        <button class="w-100 btn btn-lg btn-primary login-button" type="submit">Sign in</button>
+        <button class="w-100 btn btn-lg btn-primary register-button" type="submit">Register</button>
         {% if error %}
             <div class="alert alert-danger mt-3" role="alert">
                 {{ error }}
             </div>
         {% endif %}
-        <p class="mt-3 mb-3 text-muted">Don't you have an account? <a href="/auth/register">Register</a></p>
         <p class="mt-5 mb-3 text-muted">© 2024</p>
     </form>
 </main>
