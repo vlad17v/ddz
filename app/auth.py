@@ -4,12 +4,16 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
+from fastapi import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi import status
+from starlette.responses import HTMLResponse
+
 from app.utils import OAuth2PasswordBearerWithCookie
 from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas import User
+from app.models import User as UserDb
 from app.database import get_async_uow_session
 from app.uow import UnitOfWork
 
@@ -90,3 +94,24 @@ async def read_users_me(
         current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     return current_user
+
+@auth_router.get("/register", response_class=HTMLResponse)
+async def get_register(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@auth_router.post("/register", response_class=HTMLResponse)
+async def register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
+    user = UserDb(name=username, password=password, disabled=False)
+
+    existing_user = await uow_session.auth.get_user(username)
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
+
+    await uow_session.auth.add_user(user)
+
+    return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
