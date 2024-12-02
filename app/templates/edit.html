@@ -38,7 +38,6 @@
                value="{{ todo.created_at.strftime('%Y-%m-%d %H:%M') }}" readonly>
     </div>
 
-
     <div class="form-group">
         <label for="due_date">Дата выполнения:</label>
         <input type="text" class="form-control" id="due_date" name="due_date"
@@ -52,6 +51,16 @@
         {% if todo.image_path  %}
         <img src="{{ url_for('images', path=todo.image_path) }}" style="max-width: 100%; margin-top: 10px;" alt="todo">
         {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="existing_image">Выберите из существующих изображений:</label>
+        <select class="form-select" name="existing_image" id="existing_image">
+            <option value="">Выберите изображение</option>
+            {% for image_path in images %}
+            <option value="{{ image_path }}" {% if todo.image_path == image_path %}selected{% endif %}>{{ image_path }}</option>
+            {% endfor %}
+        </select>
     </div>
 
     <button type="submit" class="btn btn-success" data-todo-image="{{ todo.image_path }}">Сохранить</button>
@@ -69,7 +78,6 @@
         e.preventDefault();
 
         const formData = new FormData(this);
-        formData.append('image_path', "{{ todo.image_path }}")
         fetch('/todo/edit/{{ todo.id }}/', {
             method: 'PUT',
             body: formData
@@ -80,7 +88,6 @@
                     window.location.href = '/todo/list/?limit={{ limit }}&skip={{ skip }}';
                 })
                 .catch(error => console.error('Ошибка:', error));
-
 
         this.reset();
     });
