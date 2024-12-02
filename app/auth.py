@@ -59,17 +59,17 @@ async def get_current_active_user(
     return current_user
 
 
-@auth_router.post("/token")
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+@auth_router.post("/token", response_class=HTMLResponse)
+async def login( request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                 uow_session: UnitOfWork = Depends(get_async_uow_session)):
     user = await uow_session.auth.get_user(form_data.username)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Incorrect username or password"}, status_code=status.HTTP_400_BAD_REQUEST)
     if form_data.password != user.password:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    response = RedirectResponse("/", status_code=302)
-    response.set_cookie(key="access_token", value=f"Bearer {form_data.username}",
-                        httponly=True)  # set HttpOnly cookie in response
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Incorrect username or password"}, status_code=status.HTTP_400_BAD_REQUEST)
+
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(key="access_token", value=f"Bearer {form_data.username}", httponly=True)
     await uow_session.auth.set_disabled(form_data.username, False)
     return response
 
@@ -110,7 +110,7 @@ async def register(
 
     existing_user = await uow_session.auth.get_user(username)
     if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
+        return templates.TemplateResponse("register.html", {"request": request, "error": "Username already registered"},  status_code=status.HTTP_400_BAD_REQUEST)
 
     await uow_session.auth.add_user(user)
 
