@@ -1,53 +1,25 @@
-# fastapi-todo-lr1
+# ToDo App
 
 ## Запуск
 
-### Без docker
-
 ```bash
-# установка с прокси и без
-pip install --user --proxy http://login:pass@192.168.232.1:3128 -r requirements.txt
-pip install --user -r requirements.txt
+sudo docker compose -f docker-compose.yml build
 
-uvicorn app.main:app --reload
-
-# генерация туду (по умолчанию 20)
-./scripts/generate.sh
-
-# генерация 5 туду
-./scripts/generate.sh 5
+sudo docker compose -f docker-compose.yml up
 ```
 
-### С docker
+## Тесты
 
 ```bash
-sudo docker build -t 2022-3-03-vor-lr1:v1 .
+sudo docker compose -f docker-compose-test.yml build
 
-# для генерации туду
-sudo docker build -t 2022-3-03-vor-lr1-generate -f Dockerfile_generate .
+sudo docker compose -f docker-compose-test.yml up
+
+sudo docker compose exec test /bin/bash
 ```
 
-#### Для пользователя
-
 ```bash
-sudo docker run --rm -p 8000:8000 --name app 2022-3-03-vor-lr1:v1
+pytest -v tests/test_todos.py # запуск всех тестов
 
-# with database save
-sudo docker run --rm -p 8000:8000 --name app -v "${PWD}/data/":/code/data/ 2022-3-03-vor-lr1:v1
-```
-
-#### Для разработчика
-
-```bash
-sudo docker run --rm -p 8000:8000 --name app -v "${PWD}/app":/code/app -v "${PWD}/data/":/code/data/ 2022-3-03-vor-lr1:v1
-
-# генерация туду
-sudo docker run --rm --network=host 2022-3-03-vor-lr1-generate 
-```
-
-#### Docker compose
-```bash
-sudo docker compose up --build
- 
-sudo docker compose up
+pytest -v tests/test_todos.py::test_add_todo_success # запуск конкретного теста
 ```
