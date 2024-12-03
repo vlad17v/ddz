@@ -9,7 +9,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data_7:/var/lib/postgresql/data
+      - postgres_data_8:/var/lib/postgresql/data
 
   web:
     build:
@@ -27,5 +27,6 @@ services:
       - ./data:/code/data
       - ./scripts:/code/scripts
       - ./images:/code/images
+      - ./files:/code/files
 volumes:
-  postgres_data_7:
+  postgres_data_8:
