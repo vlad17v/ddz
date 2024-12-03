@@ -11,9 +11,9 @@ from app.database import get_async_uow_session
 from app.models import Base
 from app.main import app
 from app.uow import UnitOfWork
-from app.config import get_test_db_url
+from app.config import get_db_url
 
-engine_test = create_async_engine(get_test_db_url(), poolclass=NullPool)
+engine_test = create_async_engine(get_db_url(), poolclass=NullPool)
 async_session_maker = async_sessionmaker(engine_test, expire_on_commit=False)
 uow = UnitOfWork(async_session_maker)
 Base.metadata.bind = engine_test
