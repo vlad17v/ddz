@@ -357,12 +357,13 @@ async def visualize_todos(request: Request):
 
 
 @todo_router.post("/import")
-async def import_file(current_user: Annotated[User, Depends(get_current_active_user)], file: UploadFile = File(...),
+async def import_file(file: UploadFile = File(...),
                       uow_session: UnitOfWork = Depends(get_async_uow_session)):
-    with open(file.filename, "wb") as buffer:
+    file_location = os.path.join('./files/', file.filename)
+    with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    todos = import_todos(file.filename)
+    todos = import_todos(file_location)
 
     for todo in todos:
         await uow_session.todo.add_todo_object(todo)
@@ -376,5 +377,5 @@ async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
 
     export_todos(todos)
 
-    return FileResponse("data/todos.xlsx",
+    return FileResponse("data/todos.xlsx", filename=datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".xlsx",
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
