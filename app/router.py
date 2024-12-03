@@ -371,6 +371,20 @@ async def import_file(file: UploadFile = File(...),
     return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@todo_router.get("/import-log")
+async def import_file(request: Request):
+    files = os.listdir("./files/")
+    return templates.TemplateResponse("import-log.html",
+                                      {"request": request, "files": files})
+
+
+@todo_router.get("/import-log/{filename}")
+async def import_file(filename: str):
+    file_location = os.path.join('./files/', filename)
+    return FileResponse(path=file_location, filename=filename,
+                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 @todo_router.post("/export/")
 async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
     todos = await uow_session.todo.get_all_todos()
