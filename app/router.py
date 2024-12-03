@@ -1,10 +1,9 @@
 import base64
 import math
 import io
-from typing import Annotated
-
 import squarify
 import os
+from typing import Annotated
 from datetime import datetime
 
 import asyncio
@@ -23,24 +22,20 @@ from fastapi import Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi.responses import FileResponse
-from fastapi.responses import JSONResponse
-from typing import Optional
-
 
 from app.auth import get_current_active_user
 from app.database import get_async_uow_session
 from app.schemas import User
+from app.schemas import TodoSource
 from app.schemas import Todo
 from app.schemas import Tags
-from app.schemas import TodoSource
 from app.utils import export_todos
 from app.utils import generate_random_filename
-from app.utils import delete_image
 from app.utils import load_image
 from app.utils import import_todos
 from app.utils import delete_image
+from app.utils import hash_image
 from app.uow import UnitOfWork
-
 
 todo_router = APIRouter(
     prefix="/todo",
@@ -111,40 +106,48 @@ async def add_todo(
         details: str = Form(...),
         tag: Tags = Form(...),
         image: UploadFile = File(None),
-        source: str = Form(...),
+        source: TodoSource = Form(...),
         uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
     """Add new todo"""
-    logger.info(f"Creating todo: title={title}, details={details}, tag={tag}")
+    logger.info(f"Creating todo: title={title}, details={details}, tag={tag}, source={source}")
 
     random_filename = None
+    image_hash = None
     if image and image.filename:
         random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
+        image_hash = await hash_image(image)
         try:
-            await load_image(image, random_filename)
+            image_path = await uow_session.todo.is_duplicate_image(image_hash)
+            if image_path:
+                logger.info("Duplicate image detected.")
+                random_filename = image_path
+            else:
+                await load_image(image, random_filename)
+
             logger.info(f"Image uploaded successfully: {random_filename}")
         except Exception as e:
             logger.error(f"Error uploading image: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed", source=source)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed")
 
-    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename, source=source)
+    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename, source=source, image_hash=image_hash)
     await uow_session.todo.add_todo(todo.model_dump())
 
     logger.info("Todo added successfully")
 
-    return JSONResponse(content={
+    return {
         "status": "success",
         "details": "Todo added"
-    })
+    }
 
 
 @todo_router.get("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
 async def get_todo(
-    request: Request,
-    todo_id: int,
-    limit: int = 10,
-    skip: int = 0,
-    uow_session: UnitOfWork = Depends(get_async_uow_session)
+        request: Request,
+        todo_id: int,
+        limit: int = 10,
+        skip: int = 0,
+        uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
     """Get todo"""
     todo = await uow_session.todo.get_todo(todo_id)
@@ -159,8 +162,8 @@ async def get_todo(
 
     logger.info(f"Getting todo: {todo}")
     return templates.TemplateResponse("edit.html",
-                                      {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip, "images": images})
-
+                                      {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip,
+                                       "images": images})
 
 
 @todo_router.put("/edit/{todo_id}/", status_code=status.HTTP_200_OK)
@@ -174,7 +177,7 @@ async def edit_todo(todo_id: int,
                     existing_image: str = Form(None),
                     image: UploadFile = File(None),
                     uow_session: UnitOfWork = Depends(get_async_uow_session)
-):
+                    ):
     """Edit todo"""
     todo = await uow_session.todo.get_todo(todo_id)
 
@@ -184,21 +187,34 @@ async def edit_todo(todo_id: int,
             detail=f"Not found todo by this id: {todo_id}"
         )
 
-    print(image_path)
-    random_filename = None
     if image and image.filename:
         random_filename = generate_random_filename() + "." + image.filename.split('.')[-1]
-        todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
-                           image_path=random_filename)
-        await load_image(image, random_filename)
-        if todo.image_path is not None:
+        image_hash = await hash_image(image)
+        duplicate_image_path = await uow_session.todo.is_duplicate_image(image_hash)
+
+        if await uow_session.todo.get_todos_by_image_path(todo.image_path, todo.id) is None:
             await delete_image(todo.image_path)
+
+        if duplicate_image_path:
+            logger.info("Duplicate image detected.")
+            todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
+                               image_path=duplicate_image_path, image_hash=image_hash)
+        else:
+            await load_image(image, random_filename)
+            todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
+                               image_path=random_filename, image_hash=image_hash)
     elif existing_image:
+        data = await uow_session.todo.get_todos_by_image_path(existing_image, todo.id)
+        image_hash = data.image_hash
+
+        if await uow_session.todo.get_todos_by_image_path(todo.image_path, todo.id) is None:
+            await delete_image(todo.image_path)
+
         todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
-                           image_path=existing_image)
+                           image_path=existing_image, image_hash=image_hash)
     else:
         todo_change = Todo(title=title, details=details, completed=completed, tag=tag, created_at=created_at,
-                           image_path=image_path)
+                           image_path=image_path, image_hash=todo.image_hash)
 
     logger.info(f"Editting todo: {todo}")
 
@@ -228,7 +244,7 @@ async def delete_todo(todo_id: int, limit: int = 10, skip: int = 0,
         )
 
     logger.info(f"Deleting todo: {todo}")
-    if todo.image_path is not None:
+    if await uow_session.todo.get_todos_by_image_path(todo.image_path, todo.id) is None:
         await delete_image(todo.image_path)
 
     await uow_session.todo.delete_todo(todo_id)
@@ -249,8 +265,14 @@ async def delete_todos(uow_session: UnitOfWork = Depends(get_async_uow_session),
     if skip > pages or start > end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect range")
 
-
     await uow_session.todo.delete_todos(skip, limit, start, end)
+
+    if os.path.exists('images'):
+        for filename in os.listdir('images'):
+            file_path = os.path.join('images', filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
     return {
         "status": "success",
         "details": "Todos deleted",
@@ -295,6 +317,7 @@ async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(ge
 async def show_generate(request: Request):
     return templates.TemplateResponse("generate.html", {"request": request})
 
+
 @todo_router.post("/generate/", status_code=status.HTTP_200_OK)
 async def generate_todos(count: int = Form(20)):
     """Generate a number of todos by calling a bash script."""
@@ -316,7 +339,10 @@ async def generate_todos(count: int = Form(20)):
             raise HTTPException(status_code=500, detail=f"Error during execution: {stderr.decode()}")
 
         logger.info("Todos generated successfully")
-        return RedirectResponse(url="/todo/home", status_code=status.HTTP_303_SEE_OTHER)
+        return {
+            "status": "success",
+            "details": stdout.decode()
+        }
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while generating todos")
@@ -331,7 +357,8 @@ async def visualize_todos(request: Request):
 
 
 @todo_router.post("/import")
-async def import_file(current_user: Annotated[User, Depends(get_current_active_user)], file: UploadFile = File(...), uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def import_file(current_user: Annotated[User, Depends(get_current_active_user)], file: UploadFile = File(...),
+                      uow_session: UnitOfWork = Depends(get_async_uow_session)):
     with open(file.filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

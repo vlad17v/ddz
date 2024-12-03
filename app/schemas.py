@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from typing import Optional
 
-class TodoSource(Enum):
+class TodoSource(str, Enum):
     created = "Созданная"
     generated = "Сгенерированная"
     imported = "Импортированная"
@@ -25,6 +25,7 @@ class Todo(BaseModel):
     completed_at: datetime | None = None
     source: TodoSource = Field(default=TodoSource.created)
     image_path: str | None = Field(default=None)
+    image_hash: str | None = Field(default=None)
 
     model_config = {
         "json_schema_extra": {

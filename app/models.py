@@ -26,8 +26,10 @@ class Todo(Base):
     tag: Mapped[str] = mapped_column(default=Tags.plans, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    source: Mapped[TodoSource] = mapped_column(nullable=False, default=TodoSource.created)
+    source: Mapped[str] = mapped_column(nullable=False, default=TodoSource.created)
     image_path: Mapped[str | None] = mapped_column(nullable=True, default=None)
+    image_hash: Mapped[str | None] = mapped_column(nullable=True, default=None)
+
     def __repr__(self):
         return f'<Todo {self.id}>'
 
