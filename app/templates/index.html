@@ -24,26 +24,41 @@
         </select>
         <label for="tag">Тип задачи:</label>
     </div>
+    <div class="form-group">
+        <label for="image">Выберите изображение:</label>
+        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+    </div>
 
     <button type="submit" class="btn btn-success">Добавить</button>
 </form>
 
 <script>
     document.getElementById('todoForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+    e.preventDefault();
 
         const formData = new FormData(this);
-        const todoData = Object.fromEntries(formData.entries());
+        formData.append('source', 'Созданная')
 
         fetch('/todo/add/', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(todoData)
+            body: formData
         })
-                .then(res => res.json())
+                .then(res => {
+                    console.log(res.status)
+
+                    if (res.status == 401) {
+                        window.location.href = '/todo/401/';
+                        return
+                    }
+                    return res.json()
+                })
                 .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
+                    if (data == null){
+                        window.location.href = '/todo/401/';
+                    } else {
+                        console.log('Успешно:', data);
+                        window.location.href = '/todo/home/';
+                    }
                 })
                 .catch(error => console.error('Ошибка:', error));
 

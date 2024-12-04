@@ -31,6 +31,11 @@
                     </div>
 
                     <div class="mb-3">
+                        <span class="form-label">Количество задач</span>
+                        <input type="number" name="limit" class="form-control" placeholder="Введите количество задач" min="1" aria-label="Количество задач">
+                    </div>
+
+                    <div class="mb-3">
                         <span class="form-label">Тег</span>
                         <select class="form-select form-select-sm" name="tag">
                             <option value="" selected>Любой</option>
@@ -61,6 +66,7 @@
         const creationDateStart = localStorage.getItem('creation_date_start');
         const creationDateEnd = localStorage.getItem('creation_date_end');
         const tag = localStorage.getItem('tag');
+        const limit = localStorage.getItem('limit')
 
         if (creationDateStart) {
             form.querySelector("input[name='creation_date_start']").value = creationDateStart;
@@ -70,6 +76,9 @@
         }
         if (tag) {
             form.querySelector("select[name='tag']").value = tag;
+        }
+        if (limit) {
+            form.querySelector("input[name='limit']").value = limit;
         }
     };
 
@@ -88,6 +97,8 @@
         params.delete('creation_date_end');
         params.delete('tag');
         params.set('skip', '0');
+        params.set('limit', '10')
+
         window.location.search = params.toString();
     };
 
@@ -125,6 +136,10 @@
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+        {% if todo.image_path %}
+            <img src="{{ url_for('images', path=todo.image_path) }}" alt="todo" style="width: 50px; height: 50px;">
+        {% endif %}
+
         {% if todo.completed %}
         <strike>{{ todo.title }}</strike>
         {% else %}
@@ -132,14 +147,15 @@
         {% endif %}
 
         <div style="color: dodgerblue">
-            {{ todo.source.value }}
+            {{ todo.source }}
         </div>
 
         <div class="form-check form-switch ms-auto">
             <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
             <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"
                    data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
-                   data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" {% if todo.completed
+                   data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" data-todo-date="{{ todo.created_at }}"
+                   data-todo-image="{{ todo.image_path }}" {% if todo.completed
                    %}checked{% endif %}>
         </div>
 
@@ -152,18 +168,20 @@
     {% endfor %}
 </ul>
 
-<nav>
-    <ul class="pagination">
-        {% for i in range(pages) %}
-        <li class="page-item {% if i == page %}active{% endif %}">
-            <a class="page-link"
-               href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
-                {{ i + 1 }}
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-</nav>
+<div class="d-flex justify-content-between align-items-center">
+
+    <nav>
+        <ul class="pagination">
+            {% for i in range(pages) %}
+            <li class="page-item {% if i == page %}active{% endif %}">
+                <a class="page-link"
+                   href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
+                    {{ i + 1 }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
 
     <div class="dropdown">
         <button class="btn btn-danger dropdown-toggle px-4" type="button" onclick="toggleDeleteOptions()">
@@ -227,18 +245,26 @@
         });
     });
 
-
     document.querySelectorAll('.completedTask').forEach(checkbox => {
         checkbox.addEventListener('change', function () {
             const todoId = this.dataset.todoId;
             const todoTitle = this.dataset.todoTitle;
             const todoDetails = this.dataset.todoDetails;
             const todoTag = this.dataset.todoTag;
+            const todoDate = this.dataset.todoDate;
+            const todoImage = this.dataset.todoImage;
+            const formData = new FormData();
+            formData.append('id', todoId);
+            formData.append('title', todoTitle);
+            formData.append('details', todoDetails);
+            formData.append('tag', todoTag);
+            formData.append('completed', this.checked)
+            formData.append('created_at', todoDate)
+            formData.append('image_path', todoImage)
 
             fetch(`/todo/edit/${todoId}/`, {
                 method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title: todoTitle, details: todoDetails, completed: this.checked, tag: todoTag})
+                body: formData
             })
                 .then(res => res.json())
                 .then(data => {
