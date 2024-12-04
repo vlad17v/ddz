@@ -9,6 +9,7 @@ from sqlalchemy.pool import NullPool
 
 from app.database import get_async_uow_session
 from app.models import Base
+from app.models import User as UserDb
 from app.main import app
 from app.uow import UnitOfWork
 from app.config import get_db_url
@@ -49,3 +50,23 @@ def event_loop_policy(request):
 async def ac() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
+
+@pytest.fixture(scope="session")
+async def uow_session() -> AsyncGenerator[UnitOfWork, None]:
+    async with uow.start() as session:
+        yield session
+
+@pytest.fixture(scope="session")
+async def authenticated_client(ac: AsyncClient, uow_session: UnitOfWork):
+    test_user = UserDb(name="testuser", password="testpassword", disabled=False)
+    await uow_session.auth.add_user(test_user)
+
+    login_data = {"username": "testuser", "password": "testpassword"}
+    response = await ac.post("/auth/token", data=login_data)
+    assert response.status_code == 302
+
+    ac.cookies.set("access_token", f"Bearer {test_user.name}")
+
+    yield ac
+
+    await uow_session.auth.delete_user(test_user.name)
