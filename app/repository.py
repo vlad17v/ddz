@@ -144,3 +144,9 @@ class AuthRepository:
     async def add_user(self, user: User):
         self._session.add(user)
         await self._session.commit()
+
+    async def delete_user(self, username: str):
+        await self._session.execute(
+            delete(User).where(User.name == username)
+        )
+        await self._session.commit()
