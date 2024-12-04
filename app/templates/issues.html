@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form id="issue" class="d-flex flex-column gap-2">
+    <div class="form-floating">
+        <input type="text" class="form-control" id="url" name="url" placeholder="URL" required>
+        <label for="url">URL</label>
+    </div>
+    <div class="form-floating">
+        <input type="text" class="form-control" id="token" name="token" placeholder="Token" required>
+        <label for="token">Token</label>
+    </div>
+
+    <button type="submit" class="btn btn-success">Импортировать</button>
+</form>
+
+<div id="loading" style="display: none; text-align: center; margin-top: 20px;">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <p>Загрузка, пожалуйста подождите...</p>
+</div>
+
+<script>
+    document.getElementById('issue').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const loadingIndicator = document.getElementById('loading');
+
+        loadingIndicator.style.display = 'block';
+
+        fetch('/todo/import-issues/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (res.status === 401) {
+                alert('Неверный токен');
+                throw new Error('Неверный токен');
+            }
+            if (res.status === 404 || res.status === 444) {
+                alert('Неверный url');
+                throw new Error('Неверный url');
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Успешно:', data);
+            window.location.href = '/todo/home/';
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+        })
+        .finally(() => {
+            loadingIndicator.style.display = 'none';
+        });
+
+        this.reset();
+    });
+</script>
+
+{% endblock content %}

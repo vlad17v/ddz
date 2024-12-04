@@ -10,6 +10,8 @@ import asyncio
 import shutil
 import matplotlib.pyplot as plt
 import seaborn as sb
+from gitlab import GitlabAuthenticationError
+from gitlab import GitlabGetError
 from loguru import logger
 from fastapi import APIRouter
 from fastapi import Request
@@ -30,6 +32,7 @@ from app.schemas import TodoSource
 from app.schemas import Todo
 from app.schemas import Tags
 from app.utils import export_todos
+from app.utils import get_todos_by_issues
 from app.utils import generate_random_filename
 from app.utils import load_image
 from app.utils import import_todos
@@ -393,3 +396,41 @@ async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
 
     return FileResponse("data/todos.xlsx", filename=datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".xlsx",
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@todo_router.get("/import-issues/", status_code=status.HTTP_200_OK)
+async def get_import(request: Request):
+    """Page import issue
+    """
+    return templates.TemplateResponse("issues.html",
+                                      {"request": request})
+
+
+@todo_router.post("/import-issues/")
+async def import_issues(
+        url: str = Form(...),
+        token: str = Form(...),
+        uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
+    logger.info("Starting import of issues from URL: {}", url)
+
+    try:
+        todos = get_todos_by_issues(url, token)
+
+        for todo in todos:
+            await uow_session.todo.add_todo_object(todo)
+            logger.info("Added todo: ", todo)
+
+    except GitlabAuthenticationError as e:
+        logger.error("Authentication error: ", str(e))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+    except GitlabGetError as e:
+        logger.error("Error retrieving issues: ", str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    logger.info("Import completed successfully.")
+    return {
+        "status": "success",
+        "details": "imported successfully"
+    }
