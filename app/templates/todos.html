@@ -136,7 +136,7 @@
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
-        {% if todo.image_path %}
+        {% if todo.image_path and todo.image_path != 'None' %}
             <img src="{{ url_for('images', path=todo.image_path) }}" alt="{{ todo.image_path }}" style="width: 50px; height: 50px;">
         {% endif %}
 

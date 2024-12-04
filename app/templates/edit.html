@@ -48,7 +48,7 @@
     <div class="form-group">
         <label for="image">Выберите изображение:</label>
         <input type="file" class="form-control" id="image" name="image" accept="image/*">
-        {% if todo.image_path  %}
+        {% if todo.image_path and todo.image_path != 'None'  %}
         <img src="{{ url_for('images', path=todo.image_path) }}" style="max-width: 100%; margin-top: 10px;" alt="todo">
         {% endif %}
     </div>
