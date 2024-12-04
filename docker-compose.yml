@@ -28,5 +28,14 @@ services:
       - ./scripts:/code/scripts
       - ./images:/code/images
       - ./files:/code/files
+  java-server:
+    build:
+      context: java-server/.
+    container_name: java-server
+    ports:
+      - "3345:3345"
+    depends_on:
+      - db
+
 volumes:
   postgres_data_8:
