@@ -49,24 +49,15 @@ def event_loop_policy(request):
 @pytest.fixture(scope="session")
 async def ac() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        await ac.post("/auth/register", data={
+            "username": "username",
+            "password": "password"
+        })
+
+        await ac.post("/auth/token", data={
+            "username": "username",
+            "password": "password"
+        })
+
+        ac.cookies.set("access_token", f"Bearer username")
         yield ac
-
-@pytest.fixture(scope="session")
-async def uow_session() -> AsyncGenerator[UnitOfWork, None]:
-    async with uow.start() as session:
-        yield session
-
-@pytest.fixture(scope="session")
-async def authenticated_client(ac: AsyncClient, uow_session: UnitOfWork):
-    test_user = UserDb(name="testuser", password="testpassword", disabled=False)
-    await uow_session.auth.add_user(test_user)
-
-    login_data = {"username": "testuser", "password": "testpassword"}
-    response = await ac.post("/auth/token", data=login_data)
-    assert response.status_code == 302
-
-    ac.cookies.set("access_token", f"Bearer {test_user.name}")
-
-    yield ac
-
-    await uow_session.auth.delete_user(test_user.name)

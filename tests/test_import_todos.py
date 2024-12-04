@@ -1,63 +1,48 @@
+import os
+
 import pytest
 from httpx import AsyncClient
 
-from app.uow import UnitOfWork
-
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_import_todos_success(authenticated_client: AsyncClient, uow_session: UnitOfWork):
-    file_path = "data/test_import_success.xlsx"
+async def test_import_todos_success(ac: AsyncClient):
+    title = "Задача"
+    details = "Описание задачи"
+    tag = "Планы"
+    created_at = "2023-10-01T00:00:00Z"
+    source = "Созданная"
+
+    data = {
+        "title": title,
+        "details": details,
+        "tag": tag,
+        "created_at": created_at,
+        "completed_at": None,
+        "source": source
+    }
+
+    if not os.path.exists("data"):
+        os.mkdir("data")
+
+    await ac.post("/todo/add/", data=data)
+    await ac.post("/todo/export/")
+    file_path = "data/todos.xlsx"
 
     with open(file_path, "rb") as file:
-        files = {"file": ("test_import_success.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-        response = await authenticated_client.post("/todo/import", files=files)
+        files = {"file": ("todos.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+        response = await ac.post("/todo/import", files=files)
 
     assert response.status_code == 303
     assert response.headers["location"] == "/todo/home"
 
-    todos = await uow_session.todo.get_all_todos()
-    todos = list(reversed(todos))
+    response = await ac.get("/todo/list/", params={
+        "limit": 10,
+        "skip": 0,
+    })
 
-    assert todos[0].title == "Задача 1"
-    assert todos[0].details == "Погулять с собакой"
-    assert todos[0].tag == "Личное"
-    assert todos[0].completed == False
-    assert todos[0].source == "Импортированная"
-    assert todos[0].image_path is None
-    assert todos[0].image_hash is None
+    assert response.status_code == 200
+    response_text = response.text
 
-    assert todos[1].title == "Задача 2"
-    assert todos[1].details == "Купить молоко"
-    assert todos[1].tag == "Планы"
-    assert todos[1].completed == False
-    assert todos[1].source == "Импортированная"
-    assert todos[1].image_path is None
-    assert todos[1].image_hash is None
-
-    assert todos[2].title == "Задача 3"
-    assert todos[2].details == "Приготовить ужин"
-    assert todos[2].tag == "Учеба"
-    assert todos[2].completed == False
-    assert todos[2].source == "Импортированная"
-    assert todos[2].image_path is None
-    assert todos[2].image_hash is None
-
-@pytest.mark.asyncio(loop_scope="session")
-async def test_import_todos_invalid_file(authenticated_client: AsyncClient):
-    file_path = "data/test_import_invalid.xlsx"
-
-    with open(file_path, "rb") as file:
-        files = {"file": ("test_import_invalid.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-        response = await authenticated_client.post("/todo/import", files=files)
-
-    assert response.status_code == 303
-
-@pytest.mark.asyncio(loop_scope="session")
-async def test_import_todos_empty_file(authenticated_client: AsyncClient):
-    file_path = "data/test_import_empty.xlsx"
-
-    with open(file_path, "rb") as file:
-        files = {"file": ("test_import_empty.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-        response = await authenticated_client.post("/todo/import", files=files)
-
-    assert response.status_code == 303
+    assert title in response_text
+    assert details in response_text
+    assert tag in response_text

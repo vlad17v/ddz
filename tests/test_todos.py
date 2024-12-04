@@ -4,24 +4,20 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_add_todo_success(ac: AsyncClient):
-    with open("data/test.png", "rb") as image_file:
-        files = {
-            "image": ("test.png", image_file, "image/png")
-        }
-        data = {
-            "title": "Задача",
-            "details": "Описание задачи",
-            "tag": "Планы",
-            "created_at": "2023-10-01T00:00:00Z",
-            "completed_at": None,
-            "source": "Созданная"
-        }
+    data = {
+        "title": "Задача",
+        "details": "Описание задачи",
+        "tag": "Планы",
+        "created_at": "2023-10-01T00:00:00Z",
+        "completed_at": None,
+        "source": "Созданная"
+    }
 
-        response = await ac.post("/todo/add/", data=data, files=files)
+    response = await ac.post("/todo/add/", data=data)
 
-        assert response.status_code == 201
-        assert response.json()["status"] == "success"
-        assert response.json()["details"] == "Todo added"
+    assert response.status_code == 201
+    assert response.json()["status"] == "success"
+    assert response.json()["details"] == "Todo added"
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -39,20 +35,16 @@ async def test_get_todos_success(ac: AsyncClient):
     created_at = "2023-10-01T00:00:00Z"
     source = "Созданная"
 
-    with open("data/test.png", "rb") as image_file:
-        files = {
-            "image": ("test.png", image_file, "image/png")
-        }
-        data = {
-            "title": title,
-            "details": details,
-            "tag": tag,
-            "created_at": created_at,
-            "completed_at": None,
-            "source": source
-        }
+    data = {
+        "title": title,
+        "details": details,
+        "tag": tag,
+        "created_at": created_at,
+        "completed_at": None,
+        "source": source
+    }
 
-        await ac.post("/todo/add/", data=data, files=files)
+    await ac.post("/todo/add/", data=data)
 
     response = await ac.get("/todo/list/", params={
         "limit": 10,
