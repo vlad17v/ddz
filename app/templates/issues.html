@@ -27,11 +27,9 @@
         e.preventDefault();
 
         const formData = new FormData(this);
-        const loadingIndicator = document.getElementById('loading');
 
-        loadingIndicator.style.display = 'block';
 
-        fetch('/todo/import-issues/', {
+        const action = () => fetch('/todo/import-issues/', {
             method: 'POST',
             body: formData
         })
@@ -53,11 +51,10 @@
         .catch(error => {
             console.error('Ошибка:', error);
         })
-        .finally(() => {
-            loadingIndicator.style.display = 'none';
-        });
+
 
         this.reset();
+        closeShowModal(() => action());
     });
 </script>
 
