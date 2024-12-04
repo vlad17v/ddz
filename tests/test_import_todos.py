@@ -51,3 +51,13 @@ async def test_import_todos_invalid_file(authenticated_client: AsyncClient):
         response = await authenticated_client.post("/todo/import", files=files)
 
     assert response.status_code == 303
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_import_todos_empty_file(authenticated_client: AsyncClient):
+    file_path = "data/test_import_empty.xlsx"
+
+    with open(file_path, "rb") as file:
+        files = {"file": ("test_import_empty.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+        response = await authenticated_client.post("/todo/import", files=files)
+
+    assert response.status_code == 303
