@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Dict
 
 import openpyxl
+import gitlab
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from fastapi import UploadFile
@@ -176,3 +177,44 @@ class OAuth2PasswordBearerWithCookie(OAuth2):
             else:
                 return None
         return param
+
+
+def parse_link(full_link: str):
+    result = urlparse(full_link)
+
+    if all([result.scheme, result.netloc, result.path]):
+        split_link = full_link.split('/', 3)
+        server_part = split_link[0] + '//' + split_link[2]
+        project_part = split_link[3]
+        return server_part, project_part
+
+
+def import_issues(full_link: str, access_token: str):
+    server_part, project_part = parse_link(full_link)
+
+    try:
+        git = gitlab.Gitlab(url=server_part, private_token=access_token)
+        git.auth()
+    except Exception as err:
+        logger.warning(f"Trying to skip ssl: {err}")
+        git = gitlab.Gitlab(url=server_part, private_token=access_token, ssl_verify=False)
+        git.auth()
+
+    project = git.projects.get(project_part)
+    issues = project.issues.list(all=True)
+    return issues
+
+
+def get_todos_by_issues(full_link: str, access_token: str):
+    list_issues = import_issues(full_link, access_token)
+    todos = []
+
+    for issue in list_issues:
+        todo = Todo(title=issue.title, details=issue.description,
+                         completed=True if issue.state == "closed" else False, source=TodoSource.imported)
+        todo.created_at = datetime.fromisoformat(issue.created_at.replace("Z", "+00:00"))
+        if issue.due_date and todo.completed:
+            todo.completed_at = datetime.fromisoformat(issue.due_date.replace("Z", "+00:00"))
+        todos.append(todo)
+
+    return todos
