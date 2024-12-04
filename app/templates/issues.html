@@ -12,15 +12,25 @@
         <label for="token">Token</label>
     </div>
 
-
-
     <button type="submit" class="btn btn-success">Импортировать</button>
 </form>
+
+<!-- Индикатор загрузки -->
+<div id="loading" style="display: none; text-align: center; margin-top: 20px;">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <p>Загрузка, пожалуйста подождите...</p>
+</div>
+
 <script>
     document.getElementById('issue').addEventListener('submit', function (e) {
         e.preventDefault();
 
         const formData = new FormData(this);
+        const loadingIndicator = document.getElementById('loading');
+
+        loadingIndicator.style.display = 'block';
 
         fetch('/todo/import-issues/', {
             method: 'POST',
@@ -31,7 +41,7 @@
                 alert('Неверный токен');
                 throw new Error('Неверный токен');
             }
-            if (res.status === 404) {
+            if (res.status === 404 || res.status === 444) {
                 alert('Неверный url');
                 throw new Error('Неверный url');
             }
@@ -41,9 +51,15 @@
             console.log('Успешно:', data);
             window.location.href = '/todo/home/';
         })
-        .catch(error => console.error('Ошибка:', error));
+        .catch(error => {
+            console.error('Ошибка:', error);
+        })
+        .finally(() => {
+            loadingIndicator.style.display = 'none';
+        });
 
         this.reset();
     });
 </script>
+
 {% endblock content %}

@@ -194,7 +194,7 @@ def import_issues(full_link: str, access_token: str):
     result = parse_link(full_link)
 
     if result is None:
-        raise ValueError("Invalid URL format. Please provide a valid URL.")
+        return None
 
     server_part, project_part = result
 
@@ -214,6 +214,8 @@ def import_issues(full_link: str, access_token: str):
 
 def get_todos_by_issues(full_link: str, access_token: str):
     list_issues = import_issues(full_link, access_token)
+    if list_issues is None:
+        raise HTTPException(status_code=444, detail="Failed to import issues: Invalid link or authentication error.")
     todos = []
 
     for issue in list_issues:
