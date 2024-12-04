@@ -403,8 +403,31 @@ async def get_import(request: Request):
                                       {"request": request})
 
 
-@todo_router.post("/import-issues/", status_code=status.HTTP_200_OK)
-async def import_issue(url: str = Form(...), token = Form(...)):
-    """import issue
-    """
-    print(url, token)
+@todo_router.post("/import-issues/")
+async def import_issues(
+        url: str = Form(...),
+        token: str = Form(...),
+        uow_session: UnitOfWork = Depends(get_async_uow_session)
+):
+    logger.info("Starting import of issues from URL: {}", url)
+
+    try:
+        todos = get_todos_by_issues(url, token)
+
+        for todo in todos:
+            await uow_session.todo.add_todo_object(todo)
+            logger.info("Added todo: ", todo)
+
+    except GitlabAuthenticationError as e:
+        logger.error("Authentication error: ", str(e))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+    except GitlabGetError as e:
+        logger.error("Error retrieving issues: ", str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    logger.info("Import completed successfully.")
+    return {
+        "status": "success",
+        "details": "imported successfully"
+    }
