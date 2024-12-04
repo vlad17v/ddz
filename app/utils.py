@@ -5,6 +5,7 @@ import string
 from datetime import datetime
 from typing import Optional
 from typing import Dict
+from urllib.parse import urlparse
 
 import openpyxl
 import gitlab
@@ -190,7 +191,13 @@ def parse_link(full_link: str):
 
 
 def import_issues(full_link: str, access_token: str):
-    server_part, project_part = parse_link(full_link)
+    result = parse_link(full_link)
+
+    if result is None:
+        raise ValueError("Invalid URL format. Please provide a valid URL.")
+
+    server_part, project_part = result
+
 
     try:
         git = gitlab.Gitlab(url=server_part, private_token=access_token)
@@ -211,7 +218,7 @@ def get_todos_by_issues(full_link: str, access_token: str):
 
     for issue in list_issues:
         todo = Todo(title=issue.title, details=issue.description,
-                         completed=True if issue.state == "closed" else False, source=TodoSource.imported)
+                    completed=True if issue.state == "closed" else False, source=TodoSource.imported)
         todo.created_at = datetime.fromisoformat(issue.created_at.replace("Z", "+00:00"))
         if issue.due_date and todo.completed:
             todo.completed_at = datetime.fromisoformat(issue.due_date.replace("Z", "+00:00"))

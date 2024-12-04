@@ -26,12 +26,22 @@
             method: 'POST',
             body: formData
         })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = '/todo/home/';
-                })
-                .catch(error => console.error('Ошибка:', error));
+        .then(res => {
+            if (res.status === 401) {
+                alert('Неверный токен');
+                throw new Error('Неверный токен');
+            }
+            if (res.status === 404) {
+                alert('Неверный url');
+                throw new Error('Неверный url');
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Успешно:', data);
+            window.location.href = '/todo/home/';
+        })
+        .catch(error => console.error('Ошибка:', error));
 
         this.reset();
     });

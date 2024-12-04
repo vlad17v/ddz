@@ -10,6 +10,8 @@ import asyncio
 import shutil
 import matplotlib.pyplot as plt
 import seaborn as sb
+from gitlab import GitlabAuthenticationError
+from gitlab import GitlabGetError
 from loguru import logger
 from fastapi import APIRouter
 from fastapi import Request
@@ -30,6 +32,7 @@ from app.schemas import TodoSource
 from app.schemas import Todo
 from app.schemas import Tags
 from app.utils import export_todos
+from app.utils import get_todos_by_issues
 from app.utils import generate_random_filename
 from app.utils import load_image
 from app.utils import import_todos
