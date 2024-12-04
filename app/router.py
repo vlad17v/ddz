@@ -53,6 +53,7 @@ logger = logger.opt(colors=True)
 
 # pylint: enable=invalid-name
 
+
 @todo_router.get("/home/", status_code=status.HTTP_200_OK)
 async def get_home(request: Request):
     """Main page with todo list
