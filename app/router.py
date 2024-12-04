@@ -393,3 +393,18 @@ async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
 
     return FileResponse("data/todos.xlsx", filename=datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".xlsx",
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@todo_router.get("/import-issues/", status_code=status.HTTP_200_OK)
+async def get_import(request: Request):
+    """Page import issue
+    """
+    return templates.TemplateResponse("issues.html",
+                                      {"request": request})
+
+
+@todo_router.post("/import-issues/", status_code=status.HTTP_200_OK)
+async def import_issue(url: str = Form(...), token = Form(...)):
+    """import issue
+    """
+    print(url, token)

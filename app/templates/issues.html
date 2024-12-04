@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form id="issue" class="d-flex flex-column gap-2">
+    <div class="form-floating">
+        <input type="text" class="form-control" id="url" name="url" placeholder="URL" required>
+        <label for="url">URL</label>
+    </div>
+    <div class="form-floating">
+        <input type="text" class="form-control" id="token" name="token" placeholder="Token" required>
+        <label for="token">Token</label>
+    </div>
+
+
+
+    <button type="submit" class="btn btn-success">Импортировать</button>
+</form>
+<script>
+    document.getElementById('issue').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('/todo/import-issues/', {
+            method: 'POST',
+            body: formData
+        })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Успешно:', data);
+                    window.location.href = '/todo/home/';
+                })
+                .catch(error => console.error('Ошибка:', error));
+
+        this.reset();
+    });
+</script>
+{% endblock content %}
