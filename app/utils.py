@@ -107,6 +107,7 @@ async def hash_image(image: UploadFile):
     try:
         img_bytes = await image.read()
         img_hash = hashlib.md5(img_bytes).hexdigest()
+        await image.seek(0)
     except Exception as e:
         raise ValueError(f"Cannot identify image file: {e}")
     return img_hash

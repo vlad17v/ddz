@@ -127,7 +127,7 @@ async def add_todo(
                 logger.info("Duplicate image detected.")
                 random_filename = image_path
             else:
-                await load_image(image, random_filename)
+                 await load_image(image, random_filename)
 
             logger.info(f"Image uploaded successfully: {random_filename}")
         except Exception as e:
