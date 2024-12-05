@@ -113,6 +113,7 @@ async def add_todo(
         tag: Tags = Form(...),
         image: UploadFile = File(None),
         source: TodoSource = Form(...),
+        count_todos: int = Form(1),
         current_user=Depends(get_current_active_user),
         uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
@@ -137,8 +138,17 @@ async def add_todo(
             logger.error(f"Error uploading image: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Image upload failed")
 
-    todo = Todo(title=title, details=details, tag=tag, image_path=random_filename, source=source, image_hash=image_hash)
-    await uow_session.todo.add_todo(todo.model_dump())
+    if count_todos < 1:
+        HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if count_todos > 1:
+        for i in range(1, count_todos + 1):
+            todo = Todo(title=f"{title} {i}", details=details, tag=tag, image_path=random_filename, source=source, image_hash=image_hash)
+            await uow_session.todo.add_todo(todo.model_dump())
+    else:
+        todo = Todo(title=title, details=details, tag=tag, image_path=random_filename, source=source,
+                    image_hash=image_hash)
+        await uow_session.todo.add_todo(todo.model_dump())
 
     logger.info("Todo added successfully")
 
