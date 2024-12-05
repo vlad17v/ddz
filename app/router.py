@@ -111,11 +111,12 @@ async def add_todo(
         tag: Tags = Form(...),
         image: UploadFile = File(None),
         source: TodoSource = Form(...),
+        current_user=Depends(get_current_active_user),
         uow_session: UnitOfWork = Depends(get_async_uow_session)
 ):
     """Add new todo"""
     logger.info(f"Creating todo: title={title}, details={details}, tag={tag}, source={source}")
-
+    # print("User", curent_user)
     random_filename = None
     image_hash = None
     if image and image.filename:
@@ -127,7 +128,7 @@ async def add_todo(
                 logger.info("Duplicate image detected.")
                 random_filename = image_path
             else:
-                 await load_image(image, random_filename)
+                await load_image(image, random_filename)
 
             logger.info(f"Image uploaded successfully: {random_filename}")
         except Exception as e:
@@ -362,7 +363,11 @@ async def visualize_todos(request: Request):
 
 @todo_router.post("/import")
 async def import_file(file: UploadFile = File(...),
-                      uow_session: UnitOfWork = Depends(get_async_uow_session)):
+                      uow_session: UnitOfWork = Depends(get_async_uow_session),
+                      current_user=Depends(get_current_active_user),
+                      ):
+    print(current_user)
+    return
     file_location = os.path.join('./files/', file.filename)
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)

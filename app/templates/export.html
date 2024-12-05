@@ -5,7 +5,7 @@
 <div class="container mt-5">
     <h3>Импорт</h3>
     <div class="mb-3">
-        <form id="importForm">
+        <form id="importForm" action="/todo/import/" method="post">
 
             <label for="file" class="form-label">Выберите файл для импорта (формат .xlsx):</label>
             <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
@@ -19,10 +19,15 @@
                 const action = () => fetch("/todo/import/", {
                     method: 'POST',
                     body: new FormData(form)
+                }).then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '/todo/401/';
+                        return
+                    }
                 })
                 closeShowModal(action)
             })
-     </script>
+        </script>
 
     </div>
     <h3>Экспорт</h3>
