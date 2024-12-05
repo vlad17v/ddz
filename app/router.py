@@ -310,6 +310,11 @@ async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(ge
 
     tag_counts = {tag: count for tag, count in tag_counts.items() if count > 0}
 
+    # Count specific tags
+    study_count = tag_counts.get("Учёба", 0)
+    personal_count = tag_counts.get("Личное", 0)
+    plans_count = tag_counts.get("Планы", 0)
+
     if not tag_counts:
         fig, ax = plt.subplots()
         ax.text(0.5, 0.5, "No todos available", ha="center", va="center", fontsize=18)
@@ -327,7 +332,13 @@ async def visualize_todos(request: Request, uow_session: UnitOfWork = Depends(ge
     plt.close(fig)
 
     image_url = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
-    return templates.TemplateResponse("visualization.html", {"request": request, "image_url": image_url})
+    return templates.TemplateResponse("visualization.html", {
+        "request": request,
+        "image_url": image_url,
+        "study_count": study_count,
+        "personal_count": personal_count,
+        "plans_count": plans_count
+    })
 
 
 @todo_router.get("/generate/", status_code=status.HTTP_200_OK)
