@@ -24,13 +24,15 @@ from app.models import Todo
 from app.schemas import TodoSource
 
 
-def export_todos(todos: list[Todo]):
+def export_todos(todos: list[Todo], include_id: bool = True):
     wb = Workbook()
     wb.remove(wb.active)
     ws = wb.create_sheet("todos", 0)
 
-    headers = ["title", "details", "completed", "tag", "created_at", "completed_at", "source", "image_path",
-               "image_hash"]
+    headers = ["title", "details", "completed", "tag", "created_at", "completed_at", "source", "image_path", "image_hash"]
+    if include_id:
+        headers.insert(9, "id")
+
     for index, header in enumerate(headers):
         ws.column_dimensions[f"{chr(index + 65)}"].width = len(header) + 5
     ws.append(headers)
@@ -38,7 +40,7 @@ def export_todos(todos: list[Todo]):
         cell.alignment = Alignment(horizontal='center')
 
     for todo in todos:
-        ws.append([
+        row = [
             todo.title,
             todo.details,
             "Выполнено" if todo.completed else "Не выполнено",
@@ -47,7 +49,11 @@ def export_todos(todos: list[Todo]):
             todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else "",
             todo.source,
             todo.image_path,
-            todo.image_hash])
+            todo.image_hash,
+        ]
+        if include_id:
+            row.insert(9, todo.id)
+        ws.append(row)
 
     column_index = None
     for cell in ws[1]:
@@ -77,7 +83,11 @@ def import_todos(file_path) -> list[Todo]:
         sheet.column_dimensions[column_index].hidden = False
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        title, details, completed, tag, created_at, completed_at, source, image_path, image_hash = row
+        id = None
+        try:
+            title, details, completed, tag, created_at, completed_at, source, image_path, image_hash, id = row
+        except ValueError:
+            title, details, completed, tag, created_at, completed_at, source, image_path, image_hash = row
 
         if not completed and completed_at is not None:
             print(f"Ошибка: Задача с ID {id} не завершена, но дата выполнения указана.")
@@ -96,6 +106,7 @@ def import_todos(file_path) -> list[Todo]:
         todo.source = TodoSource.imported
         todo.image_path = image_path
         todo.image_hash = image_hash
+        todo.id = id
         todos.append(todo)
 
     workbook.close()

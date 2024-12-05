@@ -41,7 +41,7 @@ from app.utils import import_todos
 from app.utils import delete_image
 from app.utils import hash_image
 from app.uow import UnitOfWork
-
+import asyncpg
 todo_router = APIRouter(
     prefix="/todo",
     tags=["Todo"]
@@ -399,10 +399,7 @@ async def visualize_todos(uow_session: UnitOfWork = Depends(get_async_uow_sessio
 @todo_router.post("/import")
 async def import_file(file: UploadFile = File(...),
                       uow_session: UnitOfWork = Depends(get_async_uow_session),
-                      current_user=Depends(get_current_active_user),
-                      ):
-    print(current_user)
-    return
+                      current_user=Depends(get_current_active_user)):
     file_location = os.path.join('./files/', file.filename)
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -410,7 +407,24 @@ async def import_file(file: UploadFile = File(...),
     todos = import_todos(file_location)
 
     for todo in todos:
-        await uow_session.todo.add_todo_object(todo)
+        existing_todo = await uow_session.todo.get_todo(todo.id)
+        if existing_todo:
+            await uow_session.todo.update_todo(todo.id, {
+                "title": todo.title,
+                "details": todo.details,
+                "completed": todo.completed,
+                "tag": todo.tag,
+                "created_at": todo.created_at or datetime.utcnow(),
+                "completed_at": todo.completed_at,
+                "source": todo.source,
+                "image_path": todo.image_path,
+                "image_hash": todo.image_hash
+            })
+        else:
+            try:
+                await uow_session.todo.add_todo_object(todo)
+            except asyncpg.exceptions.UniqueViolationError:
+                logger.error(f"Todo id exists: {todo.id}")
 
     return RedirectResponse("/todo/home", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -430,10 +444,10 @@ async def import_file(filename: str):
 
 
 @todo_router.post("/export/")
-async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def export_data(include_id: bool = Form(False), uow_session: UnitOfWork = Depends(get_async_uow_session)):
     todos = await uow_session.todo.get_all_todos()
-
-    export_todos(todos)
+    print("Tod", include_id)
+    export_todos(todos, include_id)
 
     return FileResponse("data/todos.xlsx", filename=datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".xlsx",
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

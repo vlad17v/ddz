@@ -30,9 +30,16 @@
         </script>
 
     </div>
+
     <h3>Экспорт</h3>
     <div>
-        <form action="/todo/export/" method="post">
+        <form id="exportForm" action="/todo/export/" method="post">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="includeId" name="include_id" value="true">
+                <label class="form-check-label" for="includeId">
+                    Учитывать ID при экспорте
+                </label>
+            </div>
             <button type="submit" class="btn btn-success">Экспортировать все тудушки</button>
         </form>
     </div>
