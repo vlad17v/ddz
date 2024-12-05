@@ -1,6 +1,8 @@
 import base64
 import math
 import io
+import random
+
 import squarify
 import os
 from typing import Annotated
@@ -359,6 +361,18 @@ async def visualize_todos(request: Request):
     """
     return templates.TemplateResponse("export.html",
                                       {"request": request})
+
+
+@todo_router.get("/shuffle-tag/", status_code=status.HTTP_200_OK)
+async def visualize_todos(uow_session: UnitOfWork = Depends(get_async_uow_session)):
+    """Page export and import todos from excel file
+    """
+    tags = ["Учёба", "Личное", "Планы"]
+    todos = await uow_session.todo.get_all_todos()
+    for todo in todos:
+        todo.tag = random.choice(tags)
+        await uow_session.todo.update_todo(todo.id, {"tag": todo.tag})
+    return RedirectResponse("/todo/visualize/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @todo_router.post("/import")
