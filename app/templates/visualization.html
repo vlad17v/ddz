@@ -4,4 +4,18 @@
 
 <img style="width: 100%; margin: 0 auto;" src="{{ image_url }}" alt="Todo Visualization">
 <a href="/todo/shuffle-tag" style="text-align: center">Перемешать все теги</a>
+
+<div style="margin-top: 20px;">
+    <h3>Учёба: {{ study_count }}</h3>
+    <a href="/todo/list/?skip=0&limit=10&tag=Учёба">Перейти к Учёбе</a>
+</div>
+<div style="margin-top: 20px;">
+    <h3>Личные: {{ personal_count }}</h3>
+    <a href="/todo/list/?skip=0&limit=10&tag=Личное">Перейти к Личным</a>
+</div>
+<div style="margin-top: 20px;">
+    <h3>Планы: {{ plans_count }}</h3>
+    <a href="/todo/list/?skip=0&limit=10&tag=Планы">Перейти к Планам</a>
+</div>
+
 {% endblock content %}
