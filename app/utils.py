@@ -24,13 +24,15 @@ from app.models import Todo
 from app.schemas import TodoSource
 
 
-def export_todos(todos: list[Todo]):
+def export_todos(todos: list[Todo], include_id: bool = True):
     wb = Workbook()
     wb.remove(wb.active)
     ws = wb.create_sheet("todos", 0)
 
-    headers = ["title", "details", "completed", "tag", "created_at", "completed_at", "source", "image_path",
-               "image_hash"]
+    headers = ["title", "details", "completed", "tag", "created_at", "completed_at", "source", "image_path", "image_hash"]
+    if include_id:
+        headers.insert(9, "id")
+
     for index, header in enumerate(headers):
         ws.column_dimensions[f"{chr(index + 65)}"].width = len(header) + 5
     ws.append(headers)
@@ -38,7 +40,7 @@ def export_todos(todos: list[Todo]):
         cell.alignment = Alignment(horizontal='center')
 
     for todo in todos:
-        ws.append([
+        row = [
             todo.title,
             todo.details,
             "Выполнено" if todo.completed else "Не выполнено",
@@ -47,7 +49,11 @@ def export_todos(todos: list[Todo]):
             todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at is not None else "",
             todo.source,
             todo.image_path,
-            todo.image_hash])
+            todo.image_hash,
+        ]
+        if include_id:
+            row.insert(9, todo.id)
+        ws.append(row)
 
     column_index = None
     for cell in ws[1]:

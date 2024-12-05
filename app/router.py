@@ -409,10 +409,10 @@ async def import_file(filename: str):
 
 
 @todo_router.post("/export/")
-async def export_data(uow_session: UnitOfWork = Depends(get_async_uow_session)):
+async def export_data(include_id: bool = Form(False), uow_session: UnitOfWork = Depends(get_async_uow_session)):
     todos = await uow_session.todo.get_all_todos()
-
-    export_todos(todos)
+    print("Tod", include_id)
+    export_todos(todos, include_id)
 
     return FileResponse("data/todos.xlsx", filename=datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".xlsx",
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
