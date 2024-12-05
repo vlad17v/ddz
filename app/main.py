@@ -16,6 +16,11 @@ async def main_page():
     return RedirectResponse("/todo/home", status_code=303)
 
 
+@app.exception_handler(401)
+async def my_401(_, __):
+    return RedirectResponse("/todo/401", status_code=401)
+
+
 app.include_router(todo_router)
 app.include_router(auth_router)
 
