@@ -22,7 +22,9 @@ for ((i=1; i <= COUNT; i++)); do
     random_index_tags=$(( RANDOM % ${#tags[@]} ))
     tag="${tags[$random_index_tags]}"
 
+
     curl -X POST 'http://localhost:8000/todo/add/' \
+        -H "Cookie: access_token=Bearer user" \
         -F "title=${title}" \
         -F "details=${detail}" \
         -F "tag=${tag}" \
