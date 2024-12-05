@@ -83,7 +83,11 @@ def import_todos(file_path) -> list[Todo]:
         sheet.column_dimensions[column_index].hidden = False
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        title, details, completed, tag, created_at, completed_at, source, image_path, image_hash = row
+        id = None
+        try:
+            title, details, completed, tag, created_at, completed_at, source, image_path, image_hash, id = row
+        except ValueError:
+            title, details, completed, tag, created_at, completed_at, source, image_path, image_hash = row
 
         if not completed and completed_at is not None:
             print(f"Ошибка: Задача с ID {id} не завершена, но дата выполнения указана.")
@@ -102,6 +106,7 @@ def import_todos(file_path) -> list[Todo]:
         todo.source = TodoSource.imported
         todo.image_path = image_path
         todo.image_hash = image_hash
+        todo.id = id
         todos.append(todo)
 
     workbook.close()

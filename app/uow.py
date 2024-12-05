@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository import TodoRepository
 from app.repository import AuthRepository
 
+import asyncpg
 
 class UnitOfWork:
     def __init__(self, session_factory: async_sessionmaker):
@@ -21,6 +22,9 @@ class UnitOfWork:
         except Exception as e:
             await self._session.rollback()
             raise e
+        except asyncpg.exceptions.UniqueViolationError:
+            await self._session.rollback()
+            print("UniqueViolationError")
         finally:
             await self._session.close()
 
