@@ -28,5 +28,6 @@ services:
       - ./data:/code/data
       - ./scripts:/code/scripts
       - ./images:/code/images
+      - ./files:/code/files
 volumes:
   postgres_data_7:
