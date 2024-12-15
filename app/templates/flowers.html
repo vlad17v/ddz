@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    <h1 class="text-center mb-4">Add a New Flower</h1>
+    <form action="/flowers/" method="post" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label for="name" class="form-label">Flower Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+            <div class="invalid-feedback">Please enter the flower name.</div>
+        </div>
+        <div class="mb-3">
+            <label for="color" class="form-label">Color</label>
+            <input type="text" class="form-control" id="color" name="color" required>
+            <div class="invalid-feedback">Please enter the flower color.</div>
+        </div>
+        <div class="mb-3">
+            <label for="price" class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+            <div class="invalid-feedback">Please enter a valid price.</div>
+        </div>
+        <div class="mb-3">
+            <label for="quantity" class="form-label">Quantity</label>
+            <input type="number" class="form-control" id="quantity" name="quantity" required>
+            <div class="invalid-feedback">Please enter the quantity.</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Flower</button>
+        <a href="/flowers/" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<div class="container mt-5">
+    <h1 class="text-center">Flowers</h1>
+    <div class="row">
+        {% for flower in flowers %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ flower.name }}</h5>
+                    <p class="card-text">Color: {{ flower.color }}</p>
+                    <p class="card-text">Price: {{ flower.price }}</p>
+                    <p class="card-text">Quantity: {{ flower.quantity }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
+from app.flowers_router import flowers_router
 from app.router import todo_router
 from app.auth import auth_router
 from app.utils import create_dirs
@@ -23,6 +24,7 @@ async def my_401(_, __):
 
 app.include_router(todo_router)
 app.include_router(auth_router)
+app.include_router(flowers_router)
 
 create_dirs()
 

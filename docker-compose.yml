@@ -28,6 +28,7 @@ services:
       - ./scripts:/code/scripts
       - ./images:/code/images
       - ./files:/code/files
+
   java-server:
     build:
       context: java-server/.
