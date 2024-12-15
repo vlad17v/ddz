@@ -1,7 +1,7 @@
-import socket
+import asyncio
 import json
 from typing import List
-
+import socket
 
 class MapCommands:
     LIST_FLOWER = 1
@@ -13,18 +13,19 @@ class Client:
     def __init__(self):
         self.shop = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
         try:
-            self.socket.connect(('localhost', 3345))
+            self.socket.connect(('java-server', 3345))
         except Exception as e:
             print(f"Error connecting to server: {e}")
 
-    def send_command(self, command: int):
+    async def send_command(self, command: int):
         try:
             self.socket.sendall(command.to_bytes(1, 'big'))
         except IOError as e:
             print(f"Error sending command: {e}")
 
-    def get_object(self) -> str:
+    async def get_object(self) -> str:
         try:
             raw_data = self.socket.recv(1024)
             print(f"Raw data received: {raw_data}")
@@ -39,7 +40,7 @@ class Client:
             print(f"Error receiving object: {e}")
             return None
 
-    def send_object(self, obj):
+    async def send_object(self, obj):
         try:
             json_data = json.dumps(obj, default=lambda o: o.__dict__)
             print(json_data)
@@ -47,20 +48,20 @@ class Client:
         except IOError as e:
             print(f"Error sending object: {e}")
 
-    def get_all_flowers(self) -> List[dict]:
-        self.send_command(MapCommands.LIST_FLOWER)
-        flowers_json = self.get_object()
+    async def get_all_flowers(self) -> List[dict]:
+        await self.send_command(MapCommands.LIST_FLOWER)
+        flowers_json = await self.get_object()
         if flowers_json:
             flowers = json.loads(flowers_json)
             return flowers
         return []
 
-    def add_flower(self, flower: dict):
-        self.send_command(MapCommands.ADD_FLOWER)
-        self.send_object(flower)
+    async def add_flower(self, flower: dict):
+        await self.send_command(MapCommands.ADD_FLOWER)
+        await self.send_object(flower)
 
-    def server_stopped(self):
-        self.send_command(MapCommands.STOP)
+    async def server_stopped(self):
+        await self.send_command(MapCommands.STOP)
         try:
             self.socket.close()
         except IOError as e:
@@ -69,8 +70,7 @@ class Client:
 
 if __name__ == '__main__':
     client = Client()
-    flowers1 = client.get_all_flowers()
-    print(flowers1)
+
     flowerAdd = {"name": "MyTestFlower2", "color": "Blue", "price": 210.0, "quantity": 0, "id": 0}
     client.add_flower(flowerAdd)
     client.server_stopped()
