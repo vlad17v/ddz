@@ -69,11 +69,8 @@ class Client:
 
 if __name__ == '__main__':
     client = Client()
-    flowers = client.get_all_flowers()
-    print(flowers)
     flowers1 = client.get_all_flowers()
     print(flowers1)
-    flowerAdd = {"name": "MyTestFlower", "color": "Blue", "price": 210.0, "quantity": 0, "id": 0}
-
+    flowerAdd = {"name": "MyTestFlower2", "color": "Blue", "price": 210.0, "quantity": 0, "id": 0}
     client.add_flower(flowerAdd)
     client.server_stopped()
