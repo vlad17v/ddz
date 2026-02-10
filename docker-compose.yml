@@ -4,6 +4,8 @@ services:
   db:
     image: postgres:latest
     container_name: db
+    networks:
+      - app-network
     env_file:
       - .env
     ports:
@@ -16,6 +18,8 @@ services:
       context: .
     container_name: app
     command: ["/code/docker_scripts/app.sh"]
+    networks:
+      - app-network
     env_file:
       - .env
     ports:
@@ -29,14 +33,55 @@ services:
       - ./images:/code/images
       - ./files:/code/files
 
-  java-server:
-    build:
-      context: java-server/.
-    container_name: java-server
+  elasticsearch:
+    image: elasticsearch:9.3.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - app-network
     ports:
-      - "3345:3345"
+      - "9200:9200"
+      - "9300:9300"
+    restart: unless-stopped
+
+  kibana:
+    image: kibana:9.3.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - app-network
+    ports:
+      - "5601:5601"
     depends_on:
-      - db
+      - elasticsearch
+    restart: unless-stopped
+
+
+#  java-server:
+#    build:
+#      context: java-server/.
+#    container_name: java-server
+#    ports:
+#      - "3345:3345"
+#    depends_on:
+#      - db
 
 volumes:
   postgres_data_8:
+
+networks:
+  app-network:
+    driver: bridge
