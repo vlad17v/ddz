@@ -1,0 +1,204 @@
+DELETE /day2-text-demo?ignore_unavailable=true
+
+PUT /day2-text-demo
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "grade_to_text": {
+          "type": "mapping",
+          "mappings": [
+            "2 => неудовлетворительно",
+            "3 => удовлетворительно",
+            "4 => хорошо",
+            "5 => отлично"
+          ]
+        }
+      },
+      "filter": {
+        "russian_stop_with_ivanov": {
+          "type": "stop",
+          "ignore_case": true,
+          "stopwords": [
+            "_russian_",
+            "иванов"
+          ]
+        }
+      },
+      "analyzer": {
+        "russian_grade_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": [
+            "grade_to_text"
+          ],
+          "filter": [
+            "lowercase",
+            "russian_stop_with_ivanov"
+          ]
+        }
+      }
+    }
+  }
+}
+
+GET /day2-text-demo/_analyze
+{
+  "analyzer": "russian_grade_analyzer",
+  "text": [
+    "Иванов получил 5 по литературе, а Петров 4 по истории.",
+    "Сегодня Иванов пересдал 2 по физике на 3."
+  ]
+}
+
+# 2. Автодополнение на примере из книги
+DELETE /day2-book-suggest?ignore_unavailable=true
+
+PUT /day2-book-suggest
+{
+  "mappings": {
+    "properties": {
+      "book_title": {
+        "type": "text"
+      },
+      "suggest": {
+        "type": "completion"
+      }
+    }
+  }
+}
+
+POST /day2-book-suggest/_bulk
+{"index":{"_id":"1"}}
+{"book_title":"Война и мир","suggest":{"input":["Война и мир","Война","Вой"]}}
+{"index":{"_id":"2"}}
+{"book_title":"Преступление и наказание","suggest":{"input":["Преступление и наказание","Преступление","Прес"]}}
+{"index":{"_id":"3"}}
+{"book_title":"Мастер и Маргарита","suggest":{"input":["Мастер и Маргарита","Мастер","Маст"]}}
+{"index":{"_id":"4"}}
+{"book_title":"Евгений Онегин","suggest":{"input":["Евгений Онегин","Евгений","Евг"]}}
+
+POST /day2-book-suggest/_refresh
+
+GET /day2-book-suggest/_search
+{
+  "suggest": {
+    "book_title_suggest": {
+      "prefix": "прес",
+      "completion": {
+        "field": "suggest",
+        "skip_duplicates": true
+      }
+    }
+  }
+}
+
+# 3. Хранение оценок слушателей по предметам
+DELETE /day2-student-grades?ignore_unavailable=true
+
+PUT /day2-student-grades
+{
+  "mappings": {
+    "properties": {
+      "student_name": {
+        "type": "keyword"
+      },
+      "subject": {
+        "type": "keyword"
+      },
+      "grade": {
+        "type": "byte"
+      },
+      "graded_at": {
+        "type": "date",
+        "format": "yyyy-MM-dd"
+      },
+      "comment": {
+        "type": "text",
+        "analyzer": "russian"
+      }
+    }
+  }
+}
+
+POST /day2-student-grades/_bulk
+{"index":{"_id":"1"}}
+{"student_name":"Иванов Иван","subject":"Математика","grade":4,"graded_at":"2021-02-05","comment":"Уверенно решил базовую часть"}
+{"index":{"_id":"2"}}
+{"student_name":"Петров Петр","subject":"Математика","grade":5,"graded_at":"2021-02-11","comment":"Отличная контрольная работа"}
+{"index":{"_id":"3"}}
+{"student_name":"Сидорова Анна","subject":"Математика","grade":4,"graded_at":"2021-01-29","comment":"Хорошая работа у доски"}
+{"index":{"_id":"4"}}
+{"student_name":"Иванов Иван","subject":"Физика","grade":3,"graded_at":"2021-02-15","comment":"Нужно подтянуть теорию"}
+{"index":{"_id":"5"}}
+{"student_name":"Смирнов Алексей","subject":"Физика","grade":4,"graded_at":"2021-02-20","comment":"Верно решил большую часть задач"}
+{"index":{"_id":"6"}}
+{"student_name":"Кузнецова Мария","subject":"Литература","grade":4,"graded_at":"2021-02-25","comment":"Хороший анализ произведения"}
+{"index":{"_id":"7"}}
+{"student_name":"Орлова Елена","subject":"Математика","grade":4,"graded_at":"2021-03-03","comment":"Стабильный результат"}
+{"index":{"_id":"8"}}
+{"student_name":"Петров Петр","subject":"Физика","grade":2,"graded_at":"2021-02-28","comment":"Не справился с лабораторной"}
+
+POST /day2-student-grades/_refresh
+
+# Все хорошисты по заданному предмету, например по математике
+GET /day2-student-grades/_search
+{
+  "_source": [
+    "student_name",
+    "subject",
+    "grade",
+    "graded_at"
+  ],
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "subject": "Математика"
+          }
+        },
+        {
+          "term": {
+            "grade": 4
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "student_name": "asc"
+    },
+    {
+      "graded_at": "asc"
+    }
+  ]
+}
+
+# Все оценки, выставленные в феврале 2021 года
+GET /day2-student-grades/_search
+{
+  "_source": [
+    "student_name",
+    "subject",
+    "grade",
+    "graded_at"
+  ],
+  "query": {
+    "range": {
+      "graded_at": {
+        "gte": "2021-02-01",
+        "lt": "2021-03-01"
+      }
+    }
+  },
+  "sort": [
+    {
+      "graded_at": "asc"
+    },
+    {
+      "student_name": "asc"
+    }
+  ]
+}

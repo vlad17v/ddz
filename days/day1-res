@@ -1,0 +1,44 @@
+
+PUT 2022-3-17
+{
+  "mappings": {
+    "properties": {
+      "full_name":  { "type": "keyword" },
+      "age":        { "type": "integer" },
+      "score":      { "type": "double" },
+      "is_active":  { "type": "boolean" },
+      "created_at": { "type": "date" }
+    }
+  }
+}
+
+POST 2022-3-17/_bulk
+{"index":{"_id":"1"}}
+{"full_name":"Ivan Petrov"}
+{"index":{"_id":"2"}}
+{"full_name":"Ivan Petrov","age":19}
+{"index":{"_id":"3"}}
+{"full_name":"Ivan Petrov","is_active":true}
+{"index":{"_id":"4"}}
+{"full_name":"Ivan Petrov","score":4.5}
+{"index":{"_id":"5"}}
+{"full_name":"Ivan Petrov","created_at":"2026-02-10T10:00:00Z"}
+{"index":{"_id":"6"}}
+{"full_name":"Ivan Petrov","age":22,"is_active":false}
+{"index":{"_id":"7"}}
+{"full_name":"Ivan Petrov","age":30,"score":7.25}
+{"index":{"_id":"8"}}
+{"full_name":"Ivan Petrov","score":1.1,"is_active":true,"created_at":"2026-02-09"}
+{"index":{"_id":"9"}}
+{"full_name":"Ivan Petrov","age":27,"created_at":"2026-01-15T12:30:00Z"}
+{"index":{"_id":"10"}}
+{"full_name":"Ivan Petrov","age":35,"score":9.9,"is_active":true,"created_at":"2026-02-10"}
+
+POST 2022-3-17/_refresh
+
+GET 2022-3-17/_search
+{
+    "size": 5
+}
+
+DELETE 2022-3-17
