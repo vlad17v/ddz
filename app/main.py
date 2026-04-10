@@ -1,15 +1,14 @@
-"""Main of todo app
-"""
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.flowers_router import flowers_router
-from app.router import todo_router
-from app.auth import auth_router
+from app.api import api_router
+from app.core.elasticsearch import lifespan
 from app.utils import create_dirs
 
-app = FastAPI()
+create_dirs()
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
@@ -22,11 +21,6 @@ async def my_401(_, __):
     return RedirectResponse("/todo/401", status_code=401)
 
 
-app.include_router(todo_router)
-app.include_router(auth_router)
-app.include_router(flowers_router)
-
-create_dirs()
-
+app.include_router(api_router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/images", StaticFiles(directory="images"), name="images")

@@ -44,6 +44,9 @@
     e.preventDefault();
 
         const formData = new FormData(this);
+        if (!formData.get('count_todos')) {
+            formData.delete('count_todos');
+        }
         formData.append('source', 'Созданная')
 
         fetch('/todo/add/', {

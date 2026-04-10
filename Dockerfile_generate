@@ -1,7 +1,11 @@
-FROM 2022-3-03-vor-lr1:v1
+FROM python:3.12-slim
 
-RUN apt-get update && apt-get install curl -y && rm -rf /var/lib/apt/lists/*
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements.txt /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
 
 COPY scripts /code/scripts
+WORKDIR /code
 
-ENTRYPOINT ["/code/scripts/generate.sh"]
+ENTRYPOINT ["python", "/code/scripts/generate.py"]

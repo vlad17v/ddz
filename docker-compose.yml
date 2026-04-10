@@ -11,7 +11,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data_8:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
 
   web:
     build:
@@ -26,6 +26,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - elasticsearch
     volumes:
       - ./app:/code/app
       - ./data:/code/data
@@ -78,10 +79,6 @@ services:
 #      - "3345:3345"
 #    depends_on:
 #      - db
-
-volumes:
-  postgres_data_8:
-
 networks:
   app-network:
     driver: bridge
