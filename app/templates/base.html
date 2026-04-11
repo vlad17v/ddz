@@ -8,11 +8,13 @@
     <title>ToDo App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/layout.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </head>
 
 
-<body class="container">
+<body class="app-shell">
+{% set current_path = request.url.path %}
 
 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModal" aria-modal="true" role="dialog"
      style="display: none;">
@@ -30,59 +32,82 @@
 </div>
 
 <script src="{{ url_for('static', path='js/modal.js') }}"></script>
+<script defer src="{{ url_for('static', path='js/sidebar.js') }}"></script>
 
-<main class="d-flex flex-column gap-3">
-    <h1 class="h1"><a href="/todo/home/" style="cursor: pointer; color: black; text-decoration: none;">ToDo</a> - список
-        задач</h1>
+<button class="sidebar-backdrop" type="button" id="sidebarBackdrop" aria-label="Закрыть меню"></button>
 
-    {% block content %}
-
-    {% endblock content %}
-</main>
-
-<footer class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container-fluid">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/home/">Главная</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/list/">Список дел</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/export/">Импорт и экспорт</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/visualize/">Визуализация</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/generate/">Генерация</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/import-log/">Импортированные Excel-файлы</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/import-issues/">Импорт issue</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/flowers/">Java приложение</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/todo/info-tasks/">Информация</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link small" href="/auth/logout">Выйти</a>
-                    </li>
-                </ul>
-            </div>
+<aside class="app-sidebar" id="appSidebar" aria-label="Основное меню">
+    <div class="sidebar-brand">
+        <div>
+            <a class="sidebar-logo" href="/todo/home/">ToDo</a>
+            <p class="sidebar-subtitle">список задач</p>
         </div>
+        <button class="sidebar-close d-lg-none" type="button" id="sidebarCloseButton" aria-label="Закрыть боковое меню">
+            <span class="sidebar-close-copy">
+                <span class="sidebar-close-title">Скрыть меню</span>
+                <span class="sidebar-close-hint">Вернуться к содержимому</span>
+            </span>
+        </button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a class="sidebar-link {% if current_path == '/todo/home/' %}active{% endif %}" href="/todo/home/">
+            Главная
+        </a>
+        <a class="sidebar-link {% if current_path == '/todo/list/' %}active{% endif %}" href="/todo/list/">
+            Список дел
+        </a>
+        <a class="sidebar-link {% if current_path == '/todo/export/' %}active{% endif %}" href="/todo/export/">
+            Импорт и экспорт
+        </a>
+        <a class="sidebar-link {% if current_path == '/todo/visualize/' %}active{% endif %}" href="/todo/visualize/">
+            Визуализация
+        </a>
+        <a class="sidebar-link {% if current_path == '/todo/generate/' %}active{% endif %}" href="/todo/generate/">
+            Генерация
+        </a>
+        <a class="sidebar-link {% if current_path.startswith('/todo/import-log') %}active{% endif %}" href="/todo/import-log/">
+            Импортированные Excel-файлы
+        </a>
+        <a class="sidebar-link {% if current_path.startswith('/todo/import-issues') %}active{% endif %}" href="/todo/import-issues/">
+            Импорт issue
+        </a>
+        <a class="sidebar-link {% if current_path.startswith('/flowers') %}active{% endif %}" href="/flowers/">
+            Java приложение
+        </a>
+        <a class="sidebar-link {% if current_path == '/todo/info-tasks/' %}active{% endif %}" href="/todo/info-tasks/">
+            Информация
+        </a>
     </nav>
-</footer>
+
+    <a class="sidebar-link sidebar-link-danger mt-auto" href="/auth/logout">Выйти</a>
+</aside>
+
+<div class="app-content">
+    <header class="app-header">
+        <button class="sidebar-toggle" type="button" id="sidebarToggle" aria-controls="appSidebar" aria-expanded="true">
+            <span class="sidebar-toggle-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <span class="sidebar-toggle-copy">
+                <span class="sidebar-toggle-title">Меню</span>
+                <span class="sidebar-toggle-hint">Показать или скрыть навигацию</span>
+            </span>
+        </button>
+        <h1 class="app-title">
+            <a href="/todo/home/">ToDo</a>
+            <span>список задач</span>
+        </h1>
+    </header>
+
+    <main class="app-main d-flex flex-column gap-3">
+        {% block content %}
+
+        {% endblock content %}
+    </main>
+</div>
+
 </body>
 </html>
-
