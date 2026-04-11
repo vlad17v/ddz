@@ -1,2 +1,0 @@
-from app.repositories.auth_repository import AuthRepository
-from app.repositories.todo_repository import TodoRepository
