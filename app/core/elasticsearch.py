@@ -41,7 +41,7 @@ async def ensure_index(client: httpx.AsyncClient) -> bool:
                         },
                         "group_names_stop": {
                             "type": "stop",
-                            "stopwords": ["анна", "иван", "петр"],
+                            "stopwords": ["дима", "артем", "сергей"],
                         },
                         "russian_stemmer": {
                             "type": "stemmer",
