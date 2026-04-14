@@ -50,10 +50,10 @@ async def ensure_index(client: httpx.AsyncClient) -> bool:
                         "secrecy_synonyms": {
                             "type": "synonym",
                             "synonyms": [
-                                "секретно => не интересно",
-                                "совершенно секретно => не интерессно",
-                                "конфиденциально => не интересссно",
-                                "для служебного пользования => не интересно",
+                                "секретно => неинтересно",
+                                "совершенно секретно => неинтересно",
+                                "конфиденциально => неинтересно",
+                                "для служебного пользования => неинтересно",
                             ],
                         },
                     },
@@ -62,10 +62,10 @@ async def ensure_index(client: httpx.AsyncClient) -> bool:
                             "tokenizer": "standard",
                             "filter": [
                                 "lowercase",
+                                "secrecy_synonyms",
                                 "russian_stop",
                                 "group_names_stop",
                                 "russian_stemmer",
-                                "secrecy_synonyms",
                             ],
                         }
                     },
