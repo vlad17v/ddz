@@ -133,3 +133,24 @@ async def test_top_words_page_shows_aggregated_words(ac: AsyncClient):
     assert "Топ-10 популярных слов" in response.text
     assert "красная" in response.text
     assert ">3<" in response.text
+
+
+@pytest.mark.asyncio
+async def test_search_uses_sanitized_text_in_search_index(ac: AsyncClient):
+    await ac.post(
+        "/todo/add/",
+        data={
+            "title": "Секретная задача",
+            "details": "Совершенно секретно и конфиденциально",
+            "tag": "Планы",
+            "source": "Созданная",
+        },
+    )
+
+    response_secret = await ac.get("/todo/list/", params={"query": "секретно", "limit": 10, "skip": 0})
+    response_safe = await ac.get("/todo/list/", params={"query": "неинтересно", "limit": 10, "skip": 0})
+
+    assert response_secret.status_code == 200
+    assert "Секретная задача" not in response_secret.text
+    assert response_safe.status_code == 200
+    assert "Секретная задача" in response_safe.text

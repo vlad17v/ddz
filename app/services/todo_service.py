@@ -134,7 +134,15 @@ SECRECY_REPLACEMENTS = {
     "совершенно секретно": "неинтересно",
     "для служебного пользования": "неинтересно",
     "конфиденциально": "неинтересно",
+    "конфиденциальный": "неинтересно",
+    "конфиденциальная": "неинтересно",
+    "конфиденциальные": "неинтересно",
     "секретно": "неинтересно",
+    "секретный": "неинтересно",
+    "секретная": "неинтересно",
+    "секретные": "неинтересно",
+    "секретность": "неинтересно",
+    "секретности": "неинтересно",
 }
 
 WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯёЁ-]+")
@@ -149,13 +157,13 @@ class TodoService:
         attachment_text = extract_text_from_path(todo.attachment_path)
         return {
             "id": todo.id,
-            "title": todo.title,
-            "details": todo.details,
+            "title": self._sanitize_search_text(todo.title),
+            "details": self._sanitize_search_text(todo.details),
             "tag": todo.tag,
             "source": todo.source,
             "created_at": todo.created_at.isoformat() if todo.created_at else None,
             "attachment_name": os.path.basename(todo.attachment_path) if todo.attachment_path else None,
-            "attachment_text": attachment_text,
+            "attachment_text": self._sanitize_search_text(attachment_text),
         }
 
     async def _sync_to_search(self, todo: TodoDB) -> None:
@@ -168,14 +176,21 @@ class TodoService:
         return [part.strip() for part in parts if part and part.strip()]
 
     @staticmethod
+    def _sanitize_search_text(text: str | None) -> str:
+        if not text:
+            return ""
+        sanitized = text
+        for source, target in SECRECY_REPLACEMENTS.items():
+            sanitized = re.sub(rf"(?iu)\b{re.escape(source)}\b", target, sanitized)
+        return re.sub(r"\s+", " ", sanitized).strip()
+
+    @staticmethod
     def _is_countable_word(word: str) -> bool:
         normalized = word.strip("-").lower()
         return len(normalized) >= 3 and normalized not in LOCAL_STOP_WORDS and bool(WORD_PATTERN.fullmatch(normalized))
 
     def _normalize_texts_locally(self, texts: list[str]) -> list[str]:
-        normalized_text = "\n".join(texts).lower()
-        for source, target in SECRECY_REPLACEMENTS.items():
-            normalized_text = normalized_text.replace(source, target)
+        normalized_text = self._sanitize_search_text("\n".join(texts)).lower()
         return [
             word.strip("-").lower()
             for word in WORD_PATTERN.findall(normalized_text)

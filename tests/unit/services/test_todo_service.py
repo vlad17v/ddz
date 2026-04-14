@@ -81,3 +81,22 @@ async def test_get_top_words_uses_analyzed_tokens_and_returns_top_10():
     assert top_words[1].word == "задач"
     assert top_words[1].count == 3
     search_repo.analyze_texts.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_build_search_document_sanitizes_secrecy_terms():
+    repo = AsyncMock()
+    search_repo = AsyncMock()
+    service = TodoService(repo, search_repo)
+    todo = TodoDB(
+        id=1,
+        title="Секретная задача",
+        details="Совершенно секретно и конфиденциально",
+        tag="Планы",
+        source="Созданная",
+    )
+
+    document = await service._build_search_document(todo)
+
+    assert document["title"] == "неинтересно задача"
+    assert document["details"] == "неинтересно и неинтересно"
