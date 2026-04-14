@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="d-flex flex-column gap-3">
+    <div>
+        <h2 class="h2 mb-1">Топ-10 популярных слов</h2>
+        <p class="text-muted mb-0">Подсчёт выполняется на backend по заголовкам, описаниям и загруженным документам.</p>
+    </div>
+
+    {% if top_words %}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Слово</th>
+                        <th scope="col" class="px-4 py-3 text-end">Количество упоминаний</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in top_words %}
+                    <tr>
+                        <td class="px-4 py-3 fw-semibold">{{ item.word }}</td>
+                        <td class="px-4 py-3 text-end">{{ item.count }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-secondary mb-0">
+        Пока нет данных для анализа. Добавьте заметки или загрузите документы.
+    </div>
+    {% endif %}
+</section>
+{% endblock content %}

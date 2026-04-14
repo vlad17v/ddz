@@ -104,3 +104,32 @@ async def test_delete_todo_success(ac: AsyncClient):
 
     assert response.status_code == 200
     assert response.json()["details"] == "Todo deleted"
+
+
+@pytest.mark.asyncio
+async def test_top_words_page_shows_aggregated_words(ac: AsyncClient):
+    await ac.post(
+        "/todo/add/",
+        data={
+            "title": "Красная папка",
+            "details": "Красная задача",
+            "tag": "Планы",
+            "source": "Созданная",
+        },
+    )
+    await ac.post(
+        "/todo/add/",
+        data={
+            "title": "Синяя задача",
+            "details": "Красная заметка",
+            "tag": "Личное",
+            "source": "Созданная",
+        },
+    )
+
+    response = await ac.get("/todo/top-words/")
+
+    assert response.status_code == 200
+    assert "Топ-10 популярных слов" in response.text
+    assert "красная" in response.text
+    assert ">3<" in response.text

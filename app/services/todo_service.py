@@ -1,5 +1,7 @@
 import os
+import re
 import sys
+from collections import Counter
 from datetime import datetime
 
 from fastapi import HTTPException
@@ -11,6 +13,7 @@ from app.models.db import TodoDB
 from app.models.schemas import Tags
 from app.models.schemas import TodoExportRow
 from app.models.schemas import TodoSource
+from app.models.schemas import WordFrequency
 from app.repositories.todo_repository import TodoRepository
 from app.repositories.todo_search_repository import TodoSearchRepository
 from app.utils.excel import export_todos
@@ -24,6 +27,117 @@ from app.utils.files import hash_upload_file
 from app.utils.files import load_image
 from app.utils.files import save_upload_file
 from app.utils.gitlab import get_todos_by_issues
+
+LOCAL_STOP_WORDS = {
+    "а",
+    "без",
+    "был",
+    "бы",
+    "была",
+    "были",
+    "было",
+    "быть",
+    "в",
+    "вам",
+    "вас",
+    "весь",
+    "во",
+    "вот",
+    "все",
+    "всего",
+    "всех",
+    "вы",
+    "где",
+    "да",
+    "даже",
+    "для",
+    "до",
+    "его",
+    "ее",
+    "ей",
+    "если",
+    "есть",
+    "еще",
+    "же",
+    "за",
+    "здесь",
+    "и",
+    "из",
+    "или",
+    "им",
+    "их",
+    "к",
+    "как",
+    "ко",
+    "когда",
+    "кто",
+    "ли",
+    "либо",
+    "мне",
+    "может",
+    "мы",
+    "на",
+    "над",
+    "не",
+    "него",
+    "нее",
+    "нет",
+    "ни",
+    "них",
+    "но",
+    "о",
+    "об",
+    "однако",
+    "около",
+    "он",
+    "она",
+    "они",
+    "оно",
+    "от",
+    "очень",
+    "по",
+    "под",
+    "при",
+    "с",
+    "со",
+    "так",
+    "также",
+    "такой",
+    "там",
+    "те",
+    "тем",
+    "то",
+    "того",
+    "тоже",
+    "той",
+    "только",
+    "том",
+    "ты",
+    "у",
+    "уже",
+    "хотя",
+    "чего",
+    "чей",
+    "чем",
+    "что",
+    "чтобы",
+    "эта",
+    "эти",
+    "это",
+    "я",
+    "дима",
+    "артем",
+    "сергей",
+}
+
+SECRECY_REPLACEMENTS = {
+    "совершенно секретно": "неинтересно",
+    "для служебного пользования": "неинтересно",
+    "конфиденциально": "неинтересно",
+    "секретно": "неинтересно",
+}
+
+WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯёЁ-]+")
 
 
 class TodoService:
@@ -47,6 +161,44 @@ class TodoService:
     async def _sync_to_search(self, todo: TodoDB) -> None:
         document = await self._build_search_document(todo)
         await self.search_repo.index_todo(todo.id, document)
+
+    @staticmethod
+    def _collect_texts(todo: TodoDB) -> list[str]:
+        parts = [todo.title, todo.details, extract_text_from_path(todo.attachment_path)]
+        return [part.strip() for part in parts if part and part.strip()]
+
+    @staticmethod
+    def _is_countable_word(word: str) -> bool:
+        normalized = word.strip("-").lower()
+        return len(normalized) >= 3 and normalized not in LOCAL_STOP_WORDS and bool(WORD_PATTERN.fullmatch(normalized))
+
+    def _normalize_texts_locally(self, texts: list[str]) -> list[str]:
+        normalized_text = "\n".join(texts).lower()
+        for source, target in SECRECY_REPLACEMENTS.items():
+            normalized_text = normalized_text.replace(source, target)
+        return [
+            word.strip("-").lower()
+            for word in WORD_PATTERN.findall(normalized_text)
+            if self._is_countable_word(word)
+        ]
+
+    async def get_top_words(self, *, limit: int = 10) -> list[WordFrequency]:
+        todos = await self.todo_repo.get_all_todos()
+        texts: list[str] = []
+        for todo in todos:
+            texts.extend(self._collect_texts(todo))
+
+        if not texts:
+            return []
+
+        analyzed_words = await self.search_repo.analyze_texts(texts)
+        if analyzed_words:
+            words = [word for word in analyzed_words if self._is_countable_word(word)]
+        else:
+            words = self._normalize_texts_locally(texts)
+
+        counts = Counter(words)
+        return [WordFrequency(word=word, count=count) for word, count in counts.most_common(limit)]
 
     async def _save_image(self, image: UploadFile | None) -> tuple[str | None, str | None]:
         if not image or not image.filename:

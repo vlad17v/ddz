@@ -1,10 +1,34 @@
 #!/usr/bin/env python3
+from datetime import datetime
 import os
 import random
 import sys
+from uuid import uuid4
 
 import httpx
 
+
+TITLE_PREFIXES = [
+    "Проверить",
+    "Подготовить",
+    "Согласовать",
+    "Собрать",
+    "Найти",
+    "Описать",
+    "Изучить",
+    "Запланировать",
+]
+
+TITLE_SUBJECTS = [
+    "красный отчет",
+    "учебный проект",
+    "личный план",
+    "новую задачу",
+    "список покупок",
+    "тест поиска",
+    "рабочий документ",
+    "план на неделю",
+]
 
 DETAILS = [
     "Купить молоко",
@@ -27,6 +51,34 @@ DETAILS = [
     "Попробовать новый рецепт",
     "Подготовить презентацию",
     "Отдохнуть",
+]
+
+TEST_CASES = [
+    {
+        "title": "Проверка стоп слов",
+        "details": "И в на под для по от у около задачи есть русские стоп слова для проверки анализа",
+        "tag": "Учёба",
+    },
+    {
+        "title": "Проверка имён группы",
+        "details": "Дима Артем Сергей должны проверяться как пользовательские стоп слова анализатора",
+        "tag": "Личное",
+    },
+    {
+        "title": "Проверка грифа секретности",
+        "details": "Совершенно секретно и конфиденциально должны заменяться при анализе документа",
+        "tag": "Планы",
+    },
+    {
+        "title": "Проверка служебного пользования",
+        "details": "Для служебного пользования красная задача для поиска по грифам секретности",
+        "tag": "Учёба",
+    },
+    {
+        "title": "Проверка морфологии",
+        "details": "красный документ и красная задача нужны для проверки нестрогого соответствия",
+        "tag": "Планы",
+    },
 ]
 
 TAGS = ["Учёба", "Личное", "Планы"]
@@ -52,19 +104,39 @@ def ensure_auth(client: httpx.Client) -> None:
         raise RuntimeError(f"Login failed: {login_response.status_code} {login_response.text}")
 
 
+def build_run_id() -> str:
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    return f"{timestamp}-{uuid4().hex[:6]}"
+
+
+def build_random_title(run_id: str, index: int) -> str:
+    return f"{random.choice(TITLE_PREFIXES)} {random.choice(TITLE_SUBJECTS)} [{run_id}-{index}]"
+
+
+def build_payload(index: int, run_id: str) -> dict[str, str]:
+    if index < len(TEST_CASES):
+        payload = TEST_CASES[index].copy()
+        payload["title"] = f"{payload['title']} [{run_id}-{index + 1}]"
+    else:
+        payload = {
+            "title": build_random_title(run_id, index + 1),
+            "details": random.choice(DETAILS),
+            "tag": random.choice(TAGS),
+        }
+    payload["source"] = "Сгенерированная"
+    return payload
+
+
 def create_todos(client: httpx.Client, count: int) -> None:
-    for index in range(1, count + 1):
+    run_id = build_run_id()
+    for index in range(count):
         response = client.post(
             f"{BASE_URL}/todo/add/",
-            data={
-                "title": f"Задача {index}",
-                "details": random.choice(DETAILS),
-                "tag": random.choice(TAGS),
-                "source": "Сгенерированная",
-            },
+            data=build_payload(index, run_id),
         )
         if response.status_code != 201:
             raise RuntimeError(f"Todo create failed: {response.status_code} {response.text}")
+    print(f"Generated {count} todos with run_id={run_id}")
 
 
 def main() -> int:
@@ -72,7 +144,6 @@ def main() -> int:
     with httpx.Client(timeout=20.0) as client:
         ensure_auth(client)
         create_todos(client, count)
-    print(f"Generated {count} todos")
     return 0
 
 

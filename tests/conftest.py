@@ -1,3 +1,5 @@
+import re
+from collections import Counter
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
@@ -17,6 +19,7 @@ from app.models.db import Base
 class FakeSearchRepository:
     def __init__(self):
         self.documents: dict[int, dict] = {}
+        self.word_pattern = re.compile(r"[a-zA-Zа-яА-ЯёЁ-]+")
 
     @staticmethod
     def _normalize_datetime(value: datetime) -> datetime:
@@ -80,6 +83,15 @@ class FakeSearchRepository:
         total = len(items)
         page = items[skip * limit : skip * limit + limit]
         return {"ids": [item["id"] for item in page], "total": total}
+
+    async def analyze_texts(self, texts: list[str]) -> list[str]:
+        counts = Counter()
+        for text in texts:
+            for word in self.word_pattern.findall((text or "").lower()):
+                cleaned = word.strip("-")
+                if len(cleaned) >= 3:
+                    counts[cleaned] += 1
+        return list(counts.elements())
 
 
 TEST_DB_URL = "sqlite+aiosqlite:///./data/test.db"

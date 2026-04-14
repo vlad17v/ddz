@@ -51,3 +51,33 @@ async def test_list_todos_falls_back_to_database():
     assert total == 1
     assert todos[0].title == "Task"
     repo.get_todos.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_top_words_uses_analyzed_tokens_and_returns_top_10():
+    repo = AsyncMock()
+    repo.get_all_todos.return_value = [
+        TodoDB(id=1, title="Красная задача", details="Красная папка", tag="Планы", source="Созданная"),
+        TodoDB(id=2, title="Синяя задача", details="Красная задача", tag="Учёба", source="Созданная"),
+    ]
+    search_repo = AsyncMock()
+    search_repo.analyze_texts.return_value = [
+        "красн",
+        "задач",
+        "красн",
+        "папк",
+        "син",
+        "задач",
+        "красн",
+        "задач",
+    ]
+
+    service = TodoService(repo, search_repo)
+
+    top_words = await service.get_top_words(limit=10)
+
+    assert top_words[0].word == "красн"
+    assert top_words[0].count == 3
+    assert top_words[1].word == "задач"
+    assert top_words[1].count == 3
+    search_repo.analyze_texts.assert_awaited_once()

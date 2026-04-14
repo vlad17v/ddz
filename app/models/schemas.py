@@ -57,7 +57,11 @@ class TodoExportRow(BaseModel):
     attachment_path: str | None = None
 
 
+class WordFrequency(BaseModel):
+    word: str
+    count: int = Field(ge=1)
+
+
 class UserCreate(BaseModel):
     username: str
     password: str
-

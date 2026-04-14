@@ -102,3 +102,23 @@ class TodoSearchRepository:
             logger.warning(f"Elasticsearch search failed: {err}")
             return None
 
+    async def analyze_texts(self, texts: list[str]) -> list[str] | None:
+        filtered_texts = [text for text in texts if text]
+        if not filtered_texts:
+            return []
+        if not await self._prepare_index():
+            return None
+
+        body = {
+            "analyzer": "todo_russian",
+            "text": filtered_texts,
+        }
+        try:
+            response = await self.client.post(f"/{self.index}/_analyze", json=body)
+            if response.status_code != 200:
+                return None
+            payload = response.json()
+            return [token["token"] for token in payload.get("tokens", []) if token.get("token")]
+        except httpx.HTTPError as err:
+            logger.warning(f"Elasticsearch analyze failed: {err}")
+            return None

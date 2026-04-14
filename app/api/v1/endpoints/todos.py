@@ -230,6 +230,18 @@ async def visualize_todos(request: Request, todo_service: TodoService = Depends(
     )
 
 
+@router.get("/top-words/", status_code=status.HTTP_200_OK)
+async def get_top_words_page(request: Request, todo_service: TodoService = Depends(get_todo_service)):
+    top_words = await todo_service.get_top_words(limit=10)
+    return templates.TemplateResponse(
+        "top-words.html",
+        {
+            "request": request,
+            "top_words": top_words,
+        },
+    )
+
+
 @router.get("/generate/", status_code=status.HTTP_200_OK)
 async def show_generate(request: Request):
     return templates.TemplateResponse("generate.html", {"request": request})
