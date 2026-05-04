@@ -44,7 +44,7 @@ class TodoSearchRepository:
         self,
         *,
         query: str | None,
-        tag: str | None,
+        tags: list[str] | None,          # задача 2: было tag: str | None
         creation_date_start: datetime | None,
         creation_date_end: datetime | None,
         skip: int,
@@ -56,8 +56,8 @@ class TodoSearchRepository:
         filters: list[dict[str, Any]] = []
         must: list[dict[str, Any]] = []
 
-        if tag:
-            filters.append({"term": {"tag.keyword": tag}})
+        if tags:
+            filters.append({"terms": {"tags": tags}})   # задача 2
 
         if creation_date_start or creation_date_end:
             range_query: dict[str, Any] = {}
@@ -72,7 +72,7 @@ class TodoSearchRepository:
                 {
                     "multi_match": {
                         "query": query,
-                        "fields": ["title^3", "details^2", "tag", "attachment_text"],
+                        "fields": ["title^3", "details^2", "tags.text", "attachment_text"],  # задача 2
                     }
                 }
             )
@@ -100,6 +100,21 @@ class TodoSearchRepository:
             }
         except httpx.HTTPError as err:
             logger.warning(f"Elasticsearch search failed: {err}")
+            return None
+
+    async def suggest_tags(self, prefix: str, size: int = 10) -> list[str] | None:
+        if not await self._prepare_index():
+            return None
+        try:
+            body: dict[str, Any] = {"field": "tags", "size": size}
+            if prefix:
+                body["string"] = prefix.lower()
+            response = await self.client.post(f"/{self.index}/_terms_enum", json=body)
+            if response.status_code != 200:
+                return None
+            return response.json().get("terms", [])
+        except httpx.HTTPError as err:
+            logger.warning(f"Elasticsearch suggest_tags failed: {err}")
             return None
 
     async def analyze_texts(self, texts: list[str]) -> list[str] | None:

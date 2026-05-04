@@ -47,11 +47,6 @@
                         <datalist id="tag-filter-datalist"></datalist>
                     </div>
 
-                    <div class="mb-3">
-                        <span class="form-label">Строка поиска</span>
-                        <input type="text" name="query" class="form-control" placeholder="Введите текст для поиска" value="{{ query }}">
-                    </div>
-
                     <button type="submit" class="btn btn-primary">Поиск</button>
                     <button type="button" class="btn btn-secondary" id="resetFilters">Сбросить фильтры</button>
                 </form>
@@ -82,7 +77,6 @@
         if (tag) form.querySelector("input[name='tag']").value = tag;
         if (limit) form.querySelector("input[name='limit']").value = limit;
         if (query) {
-            form.querySelector("input[name='query']").value = query;
             searchForm.querySelector("input[name='query']").value = query;
         }
     };
@@ -93,6 +87,9 @@
             localStorage.removeItem(input.name);
         });
 
+        searchForm.querySelector("input[name='query']").value = '';
+        localStorage.removeItem('query');
+
         const params = new URLSearchParams(window.location.search);
         params.delete('creation_date_start');
         params.delete('creation_date_end');
@@ -101,6 +98,48 @@
         params.set('skip', '0');
         params.set('limit', '10');
 
+        window.location.search = params.toString();
+    };
+
+    const handleFilterSubmit = (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams(window.location.search);
+        params.set('skip', '0');
+
+        form.querySelectorAll("input.form-control").forEach((input) => {
+            if (input.value) {
+                params.set(input.name, input.value);
+                localStorage.setItem(input.name, input.value);
+            } else {
+                params.delete(input.name);
+                localStorage.removeItem(input.name);
+            }
+        });
+
+        const queryInput = searchForm.querySelector("input[name='query']");
+        if (queryInput.value) {
+            params.set('query', queryInput.value);
+            localStorage.setItem('query', queryInput.value);
+        } else {
+            params.delete('query');
+            localStorage.removeItem('query');
+        }
+
+        window.location.search = params.toString();
+    };
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams(window.location.search);
+        const queryValue = searchForm.querySelector("input[name='query']").value;
+        params.set('skip', '0');
+        if (queryValue) {
+            params.set('query', queryValue);
+            localStorage.setItem('query', queryValue);
+        } else {
+            params.delete('query');
+            localStorage.removeItem('query');
+        }
         window.location.search = params.toString();
     };
 
@@ -125,57 +164,11 @@
         }, 300);
     });
 
-    const handleFilterSubmit = (e) => {
-        e.preventDefault();
-        const params = new URLSearchParams(window.location.search);
-        params.set('skip', '0');
-        form.querySelectorAll("input.form-control").forEach((input) => {
-            if (input.value) {
-                params.set(input.name, input.value);
-                localStorage.setItem(input.name, input.value);
-            } else {
-                params.delete(input.name);
-                localStorage.removeItem(input.name);
-            }
-        });
-
-        const queryInput = form.querySelector("input[name='query']");
-        if (queryInput.value) {
-            params.set('query', queryInput.value);
-            localStorage.setItem('query', queryInput.value);
-            searchForm.querySelector("input[name='query']").value = queryInput.value;
-        } else {
-            params.delete('query');
-            localStorage.removeItem('query');
-            searchForm.querySelector("input[name='query']").value = '';
-        }
-
-        window.location.search = params.toString();
-    };
-
-    const handleSearchSubmit = (e) => {
-        e.preventDefault();
-        const params = new URLSearchParams(window.location.search);
-        const queryValue = searchForm.querySelector("input[name='query']").value;
-        params.set('skip', '0');
-        if (queryValue) {
-            params.set('query', queryValue);
-            localStorage.setItem('query', queryValue);
-            form.querySelector("input[name='query']").value = queryValue;
-        } else {
-            params.delete('query');
-            localStorage.removeItem('query');
-            form.querySelector("input[name='query']").value = '';
-        }
-        window.location.search = params.toString();
-    };
-
     document.getElementById("resetFilters").addEventListener("click", resetFilters);
     form.addEventListener("submit", handleFilterSubmit);
     searchForm.addEventListener("submit", handleSearchSubmit);
     restoreFilters();
 </script>
-
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">

@@ -22,31 +22,44 @@ def get_es_client(app: FastAPI) -> httpx.AsyncClient:
     return app.state.es_client
 
 
+async def _index_has_tags_field(client: httpx.AsyncClient, index_name: str) -> bool:
+    try:
+        response = await client.get(f"/{index_name}/_mapping")
+        if response.status_code != 200:
+            return False
+        props = (
+            response.json()
+            .get(index_name, {})
+            .get("mappings", {})
+            .get("properties", {})
+        )
+        return "tags" in props
+    except httpx.HTTPError:
+        return False
+
+
 async def ensure_index(client: httpx.AsyncClient) -> bool:
     index_name = settings.ES_INDEX
     try:
         response = await client.head(f"/{index_name}")
         if response.status_code == 200:
-            return True
-        if response.status_code not in {404, 405}:
+            if await _index_has_tags_field(client, index_name):
+                return True
+            # Маппинг устарел (старое поле tag) — пересоздаём.
+            await client.delete(f"/{index_name}")
+        elif response.status_code not in {404, 405}:
             return False
 
         payload: dict[str, Any] = {
             "settings": {
                 "analysis": {
                     "filter": {
-                        "russian_stop": {
-                            "type": "stop",
-                            "stopwords": "_russian_",
-                        },
+                        "russian_stop": {"type": "stop", "stopwords": "_russian_"},
                         "group_names_stop": {
                             "type": "stop",
                             "stopwords": ["дима", "артем", "сергей"],
                         },
-                        "russian_stemmer": {
-                            "type": "stemmer",
-                            "language": "russian",
-                        },
+                        "russian_stemmer": {"type": "stemmer", "language": "russian"},
                         "secrecy_synonyms": {
                             "type": "synonym",
                             "synonyms": [
@@ -76,10 +89,11 @@ async def ensure_index(client: httpx.AsyncClient) -> bool:
                     "id": {"type": "integer"},
                     "title": {"type": "text", "analyzer": "todo_russian"},
                     "details": {"type": "text", "analyzer": "todo_russian"},
-                    "tag": {
-                        "type": "text",
-                        "analyzer": "todo_russian",
-                        "fields": {"keyword": {"type": "keyword"}},
+                    "tags": {
+                        "type": "keyword",
+                        "fields": {
+                            "text": {"type": "text", "analyzer": "todo_russian"}
+                        },
                     },
                     "source": {
                         "type": "text",
