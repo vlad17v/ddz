@@ -6,13 +6,15 @@ from sqlalchemy import delete
 from sqlalchemy import desc
 from sqlalchemy import distinct
 from sqlalchemy import func
+from sqlalchemy import insert
 from sqlalchemy import or_
 from sqlalchemy import select
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.db import TagDB
 from app.models.db import TodoDB
-from app.models.schemas import Tags
+from app.models.db import todo_tags
 
 
 class TodoRepository:
@@ -31,13 +33,23 @@ class TodoRepository:
     async def refresh(self, todo: TodoDB) -> None:
         await self.session.refresh(todo)
 
-    def _apply_filters(self, query, creation_date_start: datetime | None, creation_date_end: datetime | None, tag: Tags | None, text_query: str | None):
+    def _apply_filters(
+        self,
+        query,
+        creation_date_start: datetime | None,
+        creation_date_end: datetime | None,
+        tag: str | None,
+        text_query: str | None,
+    ):
         if creation_date_start:
             query = query.where(TodoDB.created_at >= creation_date_start)
         if creation_date_end:
             query = query.where(TodoDB.created_at <= creation_date_end)
         if tag:
-            query = query.where(TodoDB.tag == tag.value)
+            tagged_ids = (
+                select(TodoDB.id).join(TodoDB.tags).where(TagDB.name == tag).subquery()
+            )
+            query = query.where(TodoDB.id.in_(tagged_ids))
         if text_query:
             pattern = f"%{text_query}%"
             query = query.where(or_(TodoDB.title.ilike(pattern), TodoDB.details.ilike(pattern)))
@@ -47,7 +59,7 @@ class TodoRepository:
         self,
         creation_date_start: datetime | None = None,
         creation_date_end: datetime | None = None,
-        tag: Tags | None = None,
+        tag: str | None = None,
         text_query: str | None = None,
     ) -> int:
         query = select(func.count()).select_from(TodoDB)
@@ -61,7 +73,7 @@ class TodoRepository:
         skip: int,
         creation_date_start: datetime | None = None,
         creation_date_end: datetime | None = None,
-        tag: Tags | None = None,
+        tag: str | None = None,
         text_query: str | None = None,
     ) -> list[TodoDB]:
         query = select(TodoDB).order_by(desc(TodoDB.id)).offset(skip * limit).limit(limit)
@@ -92,6 +104,14 @@ class TodoRepository:
 
     async def update_todo(self, todo_id: int, data: dict) -> None:
         await self.session.execute(update(TodoDB).where(TodoDB.id == todo_id).values(**data))
+
+    async def set_todo_tags(self, todo_id: int, tags: list[TagDB]) -> None:
+        await self.session.execute(delete(todo_tags).where(todo_tags.c.todo_id == todo_id))
+        if tags:
+            await self.session.execute(
+                insert(todo_tags),
+                [{"todo_id": todo_id, "tag_id": tag.id} for tag in tags],
+            )
 
     async def delete_todo(self, todo_id: int) -> None:
         await self.session.execute(delete(TodoDB).where(TodoDB.id == todo_id))

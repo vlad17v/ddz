@@ -21,15 +21,13 @@
                id="flexSwitchCheckChecked" name="completed" >
     </div>
 
-    <div class="form-floating">
-        <select class="form-select" name="tag" id="tag" aria-label="Floating label select example">
-            {% for tag in tags %}
-            <option {% if todo.tag==tag.value %}selected{% endif %}
-                    value="{{ tag.value }}">{{ tag.value }}
-            </option>
-            {% endfor %}
-        </select>
-        <label for="tag">Тип задачи:</label>
+    <div class="form-group">
+        <label for="tags-input">Теги (через запятую):</label>
+        <input type="text" class="form-control" id="tags-input" name="tags"
+               value="{{ todo.tags | map(attribute='name') | join(', ') }}"
+               placeholder="Введите теги через запятую" autocomplete="off">
+        <datalist id="tags-datalist"></datalist>
+        <div id="tags-chips" class="d-flex flex-wrap gap-1 mt-1"></div>
     </div>
 
     <div class="form-group">
@@ -75,13 +73,58 @@
 </form>
 
 <div class="mt-3">
-    <h4>Перейти к задачам типа:</h4>
-    <a href="/todo/list/?tag=Учёба" class="btn btn-outline-primary me-2">Учёба</a>
-    <a href="/todo/list/?tag=Личное" class="btn btn-outline-primary me-2">Личное</a>
-    <a href="/todo/list/?tag=Планы" class="btn btn-outline-primary me-2">Планы</a>
+    <h4>Перейти к задачам по тегу:</h4>
+    {% for tag in todo.tags %}
+    <a href="/todo/list/?tag={{ tag.name }}" class="btn btn-outline-primary me-2">{{ tag.name }}</a>
+    {% endfor %}
 </div>
 
 <script>
+    const tagsInput = document.getElementById('tags-input');
+    const tagsDatalist = document.getElementById('tags-datalist');
+    const tagsChips = document.getElementById('tags-chips');
+    let debounceTimer;
+
+    function renderChips(value) {
+        tagsChips.innerHTML = '';
+        value.split(',').map(t => t.trim()).filter(Boolean).forEach(tag => {
+            const chip = document.createElement('span');
+            chip.className = 'badge bg-secondary';
+            chip.textContent = tag;
+            tagsChips.appendChild(chip);
+        });
+    }
+
+    renderChips(tagsInput.value);
+
+    tagsInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const value = this.value;
+        const parts = value.split(',');
+        const currentTag = parts[parts.length - 1].trim();
+        if (currentTag.length < 1) {
+            tagsDatalist.innerHTML = '';
+            renderChips(value);
+            return;
+        }
+        debounceTimer = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/tags/suggest/?q=${encodeURIComponent(currentTag)}`);
+                const suggestions = await resp.json();
+                const prefix = parts.slice(0, -1).join(',');
+                tagsDatalist.innerHTML = '';
+                suggestions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = (prefix ? prefix + ', ' : '') + s;
+                    tagsDatalist.appendChild(opt);
+                });
+                tagsInput.setAttribute('list', 'tags-datalist');
+            } catch (e) {}
+        }, 300);
+
+        renderChips(value);
+    });
+
     document.getElementById('todoForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
@@ -92,7 +135,6 @@
         })
                 .then(res => res.json())
                 .then(data => {
-                    console.log('Успешно:', data);
                     window.location.href = '/todo/list/?limit={{ limit }}&skip={{ skip }}';
                 })
                 .catch(error => console.error('Ошибка:', error));

@@ -20,10 +20,12 @@ from fastapi.responses import RedirectResponse
 
 from app.core.templates import templates
 from app.dependencies import get_current_active_user
+from app.dependencies import get_tag_service
 from app.dependencies import get_todo_service
-from app.models import Tags
-from app.models import TodoSource
+from app.models.schemas import TodoSource
+from app.services.tag_service import TagService
 from app.services.todo_service import TodoService
+from app.services.todo_service import _parse_tags
 
 router = APIRouter(prefix="/todo", tags=["Todo"])
 
@@ -60,7 +62,7 @@ async def get_todos(
     skip: int = 0,
     creation_date_start: str | None = None,
     creation_date_end: str | None = None,
-    tag: Tags | None = None,
+    tag: str | None = None,
     query: str | None = None,
 ):
     start_date = parse_date(creation_date_start)
@@ -96,7 +98,7 @@ async def get_todos(
 async def add_todo(
     title: str = Form(...),
     details: str = Form(...),
-    tag: Tags = Form(...),
+    tags: str = Form(""),
     image: UploadFile | None = File(None),
     source: TodoSource = Form(...),
     count_todos: str | None = Form(None),
@@ -107,7 +109,7 @@ async def add_todo(
     await todo_service.create_todo(
         title=title,
         details=details,
-        tag=tag,
+        tags=_parse_tags(tags),
         source=source,
         count_todos=normalized_count,
         image=image,
@@ -124,10 +126,10 @@ async def get_todo(
     todo_service: TodoService = Depends(get_todo_service),
 ):
     todo = await todo_service.get_todo(todo_id)
-    images = await todo_service.todo_repo.get_all_image_paths()
+    images = await todo_service.get_all_image_paths()
     return templates.TemplateResponse(
         "edit.html",
-        {"request": request, "todo": todo, "tags": Tags, "limit": limit, "skip": skip, "images": images},
+        {"request": request, "todo": todo, "limit": limit, "skip": skip, "images": images},
     )
 
 
@@ -137,7 +139,7 @@ async def edit_todo(
     title: str = Form(...),
     details: str = Form(...),
     completed: bool = Form(False),
-    tag: Tags = Form(...),
+    tags: str = Form(""),
     created_at: datetime | None = Form(None),
     image_path: str | None = Form(None),
     existing_image: str | None = Form(None),
@@ -150,7 +152,7 @@ async def edit_todo(
         title=title,
         details=details,
         completed=completed,
-        tag=tag,
+        tags=_parse_tags(tags),
         created_at=created_at,
         image_path=image_path,
         existing_image=existing_image,
@@ -193,10 +195,10 @@ async def visualize_todos(request: Request, todo_service: TodoService = Depends(
         tag=None,
         query=None,
     )
-    tag_counts = {tag.value: 0 for tag in Tags}
+    tag_counts: dict[str, int] = {}
     for todo in todos:
-        tag_counts[todo.tag] += 1
-    tag_counts = {tag: count for tag, count in tag_counts.items() if count > 0}
+        for tag in todo.tags:
+            tag_counts[tag.name] = tag_counts.get(tag.name, 0) + 1
 
     if not tag_counts:
         fig, ax = plt.subplots()
@@ -223,9 +225,7 @@ async def visualize_todos(request: Request, todo_service: TodoService = Depends(
         {
             "request": request,
             "image_url": image_url,
-            "study_count": tag_counts.get(Tags.study.value, 0),
-            "personal_count": tag_counts.get(Tags.personal.value, 0),
-            "plans_count": tag_counts.get(Tags.plans.value, 0),
+            "tag_counts": tag_counts,
         },
     )
 
@@ -311,6 +311,10 @@ async def import_issues(
 
 
 @router.get("/shuffle-tag/", status_code=status.HTTP_200_OK)
-async def shuffle_tag(todo_service: TodoService = Depends(get_todo_service)):
-    await todo_service.shuffle_tags()
+async def shuffle_tag(
+    todo_service: TodoService = Depends(get_todo_service),
+    tag_service: TagService = Depends(get_tag_service),
+):
+    all_tags = await tag_service.get_all_tags()
+    await todo_service.shuffle_tags(all_tags)
     return RedirectResponse("/todo/visualize/", status_code=status.HTTP_303_SEE_OTHER)

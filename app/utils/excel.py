@@ -15,16 +15,9 @@ def export_todos(todos: list, include_id: bool = True) -> str:
     worksheet = workbook.create_sheet("todos", 0)
 
     headers = [
-        "title",
-        "details",
-        "completed",
-        "tag",
-        "created_at",
-        "completed_at",
-        "source",
-        "image_path",
-        "image_hash",
-        "attachment_path",
+        "title", "details", "completed", "tag",
+        "created_at", "completed_at", "source",
+        "image_path", "image_hash", "attachment_path",
     ]
     if include_id:
         headers.append("id")
@@ -36,11 +29,12 @@ def export_todos(todos: list, include_id: bool = True) -> str:
         cell.alignment = Alignment(horizontal="center")
 
     for todo in todos:
+        tag_str = ", ".join(tag.name for tag in todo.tags) if hasattr(todo, "tags") else ""
         row = [
             todo.title,
             todo.details,
             "Выполнено" if todo.completed else "Не выполнено",
-            todo.tag,
+            tag_str,
             todo.created_at.strftime("%Y-%m-%d %H:%M:%S") if todo.created_at else "",
             todo.completed_at.strftime("%Y-%m-%d %H:%M:%S") if todo.completed_at else "",
             todo.source,
@@ -76,7 +70,7 @@ def import_todos(file_path: str) -> list[TodoExportRow]:
                 title=title,
                 details=details or "",
                 completed=completed == "Выполнено",
-                tag=tag,
+                tag=tag or "",
                 created_at=created_at if isinstance(created_at, datetime) else None,
                 completed_at=completed_at if isinstance(completed_at, datetime) else None,
                 source=TodoSource.imported.value,
