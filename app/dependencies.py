@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
 from app.repositories.auth_repository import AuthRepository
+from app.repositories.tag_repository import TagRepository
 from app.repositories.todo_repository import TodoRepository
 from app.repositories.todo_search_repository import TodoSearchRepository
 from app.services.auth_service import AuthService
 from app.services.flower_service import FlowerService
+from app.services.tag_service import TagService
 from app.services.todo_service import TodoService
 from app.utils.auth import OAuth2PasswordBearerWithCookie
 
@@ -26,6 +28,10 @@ async def get_auth_repository(session: AsyncSession = Depends(get_db_session)) -
     return AuthRepository(session)
 
 
+async def get_tag_repository(session: AsyncSession = Depends(get_db_session)) -> TagRepository:
+    return TagRepository(session)
+
+
 async def get_search_repository(request: Request) -> TodoSearchRepository:
     return TodoSearchRepository(request.app.state.es_client)
 
@@ -33,12 +39,20 @@ async def get_search_repository(request: Request) -> TodoSearchRepository:
 async def get_todo_service(
     todo_repo: TodoRepository = Depends(get_todo_repository),
     search_repo: TodoSearchRepository = Depends(get_search_repository),
+    tag_repo: TagRepository = Depends(get_tag_repository),
 ) -> TodoService:
-    return TodoService(todo_repo, search_repo)
+    return TodoService(todo_repo, search_repo, tag_repo)
 
 
 async def get_auth_service(auth_repo: AuthRepository = Depends(get_auth_repository)) -> AuthService:
     return AuthService(auth_repo)
+
+
+async def get_tag_service(
+    tag_repo: TagRepository = Depends(get_tag_repository),
+    search_repo: TodoSearchRepository = Depends(get_search_repository),
+) -> TagService:
+    return TagService(tag_repo, search_repo)
 
 
 async def get_flower_service() -> FlowerService:

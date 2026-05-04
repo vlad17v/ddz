@@ -42,17 +42,9 @@
 
                     <div class="mb-3">
                         <span class="form-label">Тег</span>
-                        <select class="form-select form-select-sm" name="tag">
-                            <option value="" selected>Любой</option>
-                            <option value="Учёба">Учёба</option>
-                            <option value="Личное">Личное</option>
-                            <option value="Планы">Планы</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <span class="form-label">Строка поиска</span>
-                        <input type="text" name="query" class="form-control" placeholder="Введите текст для поиска" value="{{ query }}">
+                        <input type="text" class="form-control form-control-sm" name="tag" id="tag-filter"
+                               placeholder="Введите тег для фильтрации" autocomplete="off" list="tag-filter-datalist">
+                        <datalist id="tag-filter-datalist"></datalist>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Поиск</button>
@@ -77,23 +69,14 @@
         const creationDateStart = localStorage.getItem('creation_date_start');
         const creationDateEnd = localStorage.getItem('creation_date_end');
         const tag = localStorage.getItem('tag');
-        const limit = localStorage.getItem('limit')
-        const query = localStorage.getItem('query')
+        const limit = localStorage.getItem('limit');
+        const query = localStorage.getItem('query');
 
-        if (creationDateStart) {
-            form.querySelector("input[name='creation_date_start']").value = creationDateStart;
-        }
-        if (creationDateEnd) {
-            form.querySelector("input[name='creation_date_end']").value = creationDateEnd;
-        }
-        if (tag) {
-            form.querySelector("select[name='tag']").value = tag;
-        }
-        if (limit) {
-            form.querySelector("input[name='limit']").value = limit;
-        }
+        if (creationDateStart) form.querySelector("input[name='creation_date_start']").value = creationDateStart;
+        if (creationDateEnd) form.querySelector("input[name='creation_date_end']").value = creationDateEnd;
+        if (tag) form.querySelector("input[name='tag']").value = tag;
+        if (limit) form.querySelector("input[name='limit']").value = limit;
         if (query) {
-            form.querySelector("input[name='query']").value = query;
             searchForm.querySelector("input[name='query']").value = query;
         }
     };
@@ -104,9 +87,8 @@
             localStorage.removeItem(input.name);
         });
 
-        const tagSelect = form.querySelector("select[name='tag']");
-        tagSelect.value = '';
-        localStorage.removeItem(tagSelect.name);
+        searchForm.querySelector("input[name='query']").value = '';
+        localStorage.removeItem('query');
 
         const params = new URLSearchParams(window.location.search);
         params.delete('creation_date_start');
@@ -114,7 +96,7 @@
         params.delete('tag');
         params.delete('query');
         params.set('skip', '0');
-        params.set('limit', '10')
+        params.set('limit', '10');
 
         window.location.search = params.toString();
     };
@@ -123,6 +105,7 @@
         e.preventDefault();
         const params = new URLSearchParams(window.location.search);
         params.set('skip', '0');
+
         form.querySelectorAll("input.form-control").forEach((input) => {
             if (input.value) {
                 params.set(input.name, input.value);
@@ -133,24 +116,13 @@
             }
         });
 
-        const tagSelect = form.querySelector("select[name='tag']");
-        if (tagSelect.value) {
-            params.set(tagSelect.name, tagSelect.value);
-            localStorage.setItem(tagSelect.name, tagSelect.value);
-        } else {
-            params.delete(tagSelect.name);
-            localStorage.removeItem(tagSelect.name);
-        }
-
-        const queryInput = form.querySelector("input[name='query']");
+        const queryInput = searchForm.querySelector("input[name='query']");
         if (queryInput.value) {
             params.set('query', queryInput.value);
             localStorage.setItem('query', queryInput.value);
-            searchForm.querySelector("input[name='query']").value = queryInput.value;
         } else {
             params.delete('query');
             localStorage.removeItem('query');
-            searchForm.querySelector("input[name='query']").value = '';
         }
 
         window.location.search = params.toString();
@@ -164,21 +136,39 @@
         if (queryValue) {
             params.set('query', queryValue);
             localStorage.setItem('query', queryValue);
-            form.querySelector("input[name='query']").value = queryValue;
         } else {
             params.delete('query');
             localStorage.removeItem('query');
-            form.querySelector("input[name='query']").value = '';
         }
         window.location.search = params.toString();
     };
+
+    const tagFilterInput = form.querySelector("input[name='tag']");
+    let tagDebounce;
+    tagFilterInput.addEventListener('input', function () {
+        clearTimeout(tagDebounce);
+        const val = this.value.trim();
+        if (!val) { document.getElementById('tag-filter-datalist').innerHTML = ''; return; }
+        tagDebounce = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/tags/suggest/?q=${encodeURIComponent(val)}`);
+                const suggestions = await resp.json();
+                const dl = document.getElementById('tag-filter-datalist');
+                dl.innerHTML = '';
+                suggestions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    dl.appendChild(opt);
+                });
+            } catch (e) {}
+        }, 300);
+    });
 
     document.getElementById("resetFilters").addEventListener("click", resetFilters);
     form.addEventListener("submit", handleFilterSubmit);
     searchForm.addEventListener("submit", handleSearchSubmit);
     restoreFilters();
 </script>
-
 <ul class="list-group">
     {% for todo in todos %}
     <li class="list-group-item d-flex align-items-center gap-3 flex-wrap">
@@ -196,6 +186,14 @@
             {{ todo.source }}
         </div>
 
+        {% if todo.tags %}
+        <div class="d-flex flex-wrap gap-1">
+            {% for tag in todo.tags %}
+            <a href="/todo/list/?tag={{ tag.name }}" class="badge bg-secondary text-decoration-none">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% if todo.attachment_path %}
         <div class="text-secondary small">
             Файл: {{ todo.attachment_path.split('/')[-1] }}
@@ -206,9 +204,10 @@
             <label class="form-check-label" for="flexSwitchCheckChecked">Выполнено</label>
             <input class="form-check-input completedTask" type="checkbox" id="flexSwitchCheckChecked"
                    data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}"
-                   data-todo-details="{{ todo.details }}" data-todo-tag="{{ todo.tag }}" data-todo-date="{{ todo.created_at }}"
-                   data-todo-image="{{ todo.image_path }}" {% if todo.completed
-                   %}checked{% endif %}>
+                   data-todo-details="{{ todo.details }}"
+                   data-todo-tags="{{ todo.tags | map(attribute='name') | join(',') }}"
+                   data-todo-date="{{ todo.created_at }}"
+                   data-todo-image="{{ todo.image_path }}" {% if todo.completed %}checked{% endif %}>
         </div>
 
         <div class="btn-group">
@@ -227,7 +226,7 @@
             {% for i in range(pages) %}
             <li class="page-item {% if i == page %}active{% endif %}">
                 <a class="page-link"
-                   href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag is not none %}&tag={{ tag.value }}{% endif %}{% if query %}&query={{ query }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
+                   href="/todo/list/?limit={{ limit }}&skip={{ i }}{% if tag %}&tag={{ tag }}{% endif %}{% if query %}&query={{ query }}{% endif %}{% if creation_date_start is not none %}&creation_date_start={{ creation_date_start.strftime('%Y-%m-%d') }}{% endif %}{% if creation_date_end is not none %}&creation_date_end={{ creation_date_end.strftime('%Y-%m-%d') }}{% endif %}">
                     {{ i + 1 }}
                 </a>
             </li>
@@ -253,20 +252,14 @@
 
             <div class="d-none p-3" id="rangeInputs">
                 <div class="input-group input-group-sm flex-nowrap mb-1">
-                    <span class="input-group-text" for="startInput"
-                          style="width: 40px; justify-content: center;">С</span>
-                    <input type="number" class="form-control" id="startInput"
-                           min="1" value="1">
+                    <span class="input-group-text" for="startInput" style="width: 40px; justify-content: center;">С</span>
+                    <input type="number" class="form-control" id="startInput" min="1" value="1">
                 </div>
                 <div class="input-group input-group-sm flex-nowrap">
-                    <span class="input-group-text" for="endInput"
-                          style="width: 40px; justify-content: center;">По</span>
-                    <input type="number" class="form-control" id="endInput" min="1"
-                           value="1">
+                    <span class="input-group-text" for="endInput" style="width: 40px; justify-content: center;">По</span>
+                    <input type="number" class="form-control" id="endInput" min="1" value="1">
                 </div>
-
-                <button class="btn btn-success btn-sm mt-2 w-100" onclick="closeShowModal(deleteRange)">Подтвердить
-                </button>
+                <button class="btn btn-success btn-sm mt-2 w-100" onclick="closeShowModal(deleteRange)">Подтвердить</button>
             </div>
 
             <div class="alert alert-danger mt-2 mx-2 py-2 px-3 d-none" id="errorMsg" style="font-size: 0.875rem">
@@ -277,23 +270,16 @@
 </div>
 
 <script>
-
     document.querySelectorAll('.deleteButton').forEach(button => {
         button.addEventListener('click', function (e) {
             const todoId = this.dataset.todoId;
-
             const action = () => {
-                fetch(`/todo/delete/${todoId}/`, {
-                    method: 'DELETE'
-                })
+                fetch(`/todo/delete/${todoId}/`, { method: 'DELETE' })
                     .then(res => res.json())
-                    .then(data => {
-                        console.log('Успешно:', data);
-                        window.location.href = window.location.href.toString();
-                    })
-                    .catch(error => console.error('Ошибка:', error))
+                    .then(() => { window.location.href = window.location.href.toString(); })
+                    .catch(error => console.error('Ошибка:', error));
             };
-            closeShowModal(action)
+            closeShowModal(action);
         });
     });
 
@@ -302,27 +288,21 @@
             const todoId = this.dataset.todoId;
             const todoTitle = this.dataset.todoTitle;
             const todoDetails = this.dataset.todoDetails;
-            const todoTag = this.dataset.todoTag;
+            const todoTags = this.dataset.todoTags;
             const todoDate = this.dataset.todoDate;
             const todoImage = this.dataset.todoImage;
             const formData = new FormData();
             formData.append('id', todoId);
             formData.append('title', todoTitle);
             formData.append('details', todoDetails);
-            formData.append('tag', todoTag);
-            formData.append('completed', this.checked)
-            formData.append('created_at', todoDate)
-            formData.append('image_path', todoImage)
+            formData.append('tags', todoTags);
+            formData.append('completed', this.checked);
+            formData.append('created_at', todoDate);
+            formData.append('image_path', todoImage);
 
-            fetch(`/todo/edit/${todoId}/`, {
-                method: 'PUT',
-                body: formData
-            })
+            fetch(`/todo/edit/${todoId}/`, { method: 'PUT', body: formData })
                 .then(res => res.json())
-                .then(data => {
-                    console.log('Успешно:', data);
-                    window.location.href = window.location.href.toString();
-                })
+                .then(() => { window.location.href = window.location.href.toString(); })
                 .catch(error => console.error('Ошибка:', error));
         });
     });
@@ -330,7 +310,6 @@
     function toggleDeleteOptions() {
         const deleteOptions = document.getElementById('deleteOptions');
         deleteOptions.classList.toggle('d-none');
-
         if (deleteOptions.classList.contains('d-none')) {
             document.getElementById('rangeInputs').classList.add('d-none');
             document.getElementById('errorMsg').classList.add('d-none');
@@ -341,10 +320,7 @@
         const rangeInputs = document.getElementById('rangeInputs');
         rangeInputs.classList.add('d-none');
         document.getElementById('errorMsg').classList.add('d-none');
-
-        if (option === 'all') {
-            deleteAllTasks();
-        } else if (option === 'range') {
+        if (option === 'range') {
             rangeInputs.classList.remove('d-none');
             initializeRangeInputs();
         }
@@ -352,29 +328,24 @@
 
     const deleteAllTasks = () => {
         const action = () => {
-            fetch(`/todo/delete/`, {
-                method: 'DELETE'
-            })
+            fetch(`/todo/delete/`, { method: 'DELETE' })
                 .then(res => res.json())
                 .catch(error => console.error('Ошибка:', error));
-
             setTimeout(() => {
                 const params = new URLSearchParams(window.location.search);
                 params.set('skip', '0');
                 window.location.href = `${window.location.pathname}?${params.toString()}`;
             }, 500);
-        }
-        closeShowModal(action)
-    }
+        };
+        closeShowModal(action);
+    };
 
     function initializeRangeInputs() {
         const tasks = document.getElementsByClassName('list-group-item');
         const startInput = document.getElementById('startInput');
         const endInput = document.getElementById('endInput');
-
         startInput.max = tasks.length;
         endInput.max = tasks.length;
-
         startInput.value = 1;
         endInput.value = tasks.length;
     }
@@ -385,37 +356,25 @@
         const startIndex = parseInt(startInput.value);
         const endIndex = parseInt(endInput.value);
         const errorMsg = document.getElementById('errorMsg');
-
         if (startIndex > endIndex || startIndex < 1) {
             errorMsg.classList.remove('d-none');
             return;
         }
-
         errorMsg.classList.add('d-none');
-
         const params = new URLSearchParams(window.location.search);
         params.set('start', startIndex.toString());
         params.set('end', endIndex.toString());
-
-        fetch(`/todo/delete/?${params.toString()}`, {
-            method: 'DELETE'
-        })
+        fetch(`/todo/delete/?${params.toString()}`, { method: 'DELETE' })
             .then(res => res.json())
             .catch(error => console.error('Ошибка:', error));
-
-        setTimeout(() => {
-            window.location.href = window.location.href.toString();
-        }, 500);
+        setTimeout(() => { window.location.href = window.location.href.toString(); }, 500);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         const tasks = document.getElementsByClassName('list-group-item');
-        const startInput = document.getElementById('startInput');
-        const endInput = document.getElementById('endInput');
-
-        startInput.max = tasks.length;
-        endInput.max = tasks.length;
-        endInput.value = tasks.length;
+        document.getElementById('startInput').max = tasks.length;
+        document.getElementById('endInput').max = tasks.length;
+        document.getElementById('endInput').value = tasks.length;
     });
 
     document.addEventListener('click', function (e) {

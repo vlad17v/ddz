@@ -9,11 +9,12 @@ from fastapi import UploadFile
 from fastapi import status
 
 from app.core.config import settings
+from app.models.db import TagDB
 from app.models.db import TodoDB
-from app.models.schemas import Tags
 from app.models.schemas import TodoExportRow
 from app.models.schemas import TodoSource
 from app.models.schemas import WordFrequency
+from app.repositories.tag_repository import TagRepository
 from app.repositories.todo_repository import TodoRepository
 from app.repositories.todo_search_repository import TodoSearchRepository
 from app.utils.excel import export_todos
@@ -29,105 +30,16 @@ from app.utils.files import save_upload_file
 from app.utils.gitlab import get_todos_by_issues
 
 LOCAL_STOP_WORDS = {
-    "а",
-    "без",
-    "был",
-    "бы",
-    "была",
-    "были",
-    "было",
-    "быть",
-    "в",
-    "вам",
-    "вас",
-    "весь",
-    "во",
-    "вот",
-    "все",
-    "всего",
-    "всех",
-    "вы",
-    "где",
-    "да",
-    "даже",
-    "для",
-    "до",
-    "его",
-    "ее",
-    "ей",
-    "если",
-    "есть",
-    "еще",
-    "же",
-    "за",
-    "здесь",
-    "и",
-    "из",
-    "или",
-    "им",
-    "их",
-    "к",
-    "как",
-    "ко",
-    "когда",
-    "кто",
-    "ли",
-    "либо",
-    "мне",
-    "может",
-    "мы",
-    "на",
-    "над",
-    "не",
-    "него",
-    "нее",
-    "нет",
-    "ни",
-    "них",
-    "но",
-    "о",
-    "об",
-    "однако",
-    "около",
-    "он",
-    "она",
-    "они",
-    "оно",
-    "от",
-    "очень",
-    "по",
-    "под",
-    "при",
-    "с",
-    "со",
-    "так",
-    "также",
-    "такой",
-    "там",
-    "те",
-    "тем",
-    "то",
-    "того",
-    "тоже",
-    "той",
-    "только",
-    "том",
-    "ты",
-    "у",
-    "уже",
-    "хотя",
-    "чего",
-    "чей",
-    "чем",
-    "что",
-    "чтобы",
-    "эта",
-    "эти",
-    "это",
-    "я",
-    "дима",
-    "артем",
-    "сергей",
+    "а", "без", "был", "бы", "была", "были", "было", "быть", "в", "вам", "вас",
+    "весь", "во", "вот", "все", "всего", "всех", "вы", "где", "да", "даже",
+    "для", "до", "его", "ее", "ей", "если", "есть", "еще", "же", "за", "здесь",
+    "и", "из", "или", "им", "их", "к", "как", "ко", "когда", "кто", "ли",
+    "либо", "мне", "может", "мы", "на", "над", "не", "него", "нее", "нет",
+    "ни", "них", "но", "о", "об", "однако", "около", "он", "она", "они",
+    "оно", "от", "очень", "по", "под", "при", "с", "со", "так", "также",
+    "такой", "там", "те", "тем", "то", "того", "тоже", "той", "только",
+    "том", "ты", "у", "уже", "хотя", "чего", "чей", "чем", "что", "чтобы",
+    "эта", "эти", "это", "я", "дима", "артем", "сергей",
 }
 
 SECRECY_REPLACEMENTS = {
@@ -148,10 +60,20 @@ SECRECY_REPLACEMENTS = {
 WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯёЁ-]+")
 
 
+def _parse_tags(tags_str: str) -> list[str]:
+    return [t.strip() for t in tags_str.split(",") if t.strip()]
+
+
 class TodoService:
-    def __init__(self, todo_repo: TodoRepository, search_repo: TodoSearchRepository):
+    def __init__(
+        self,
+        todo_repo: TodoRepository,
+        search_repo: TodoSearchRepository,
+        tag_repo: TagRepository,
+    ):
         self.todo_repo = todo_repo
         self.search_repo = search_repo
+        self.tag_repo = tag_repo
 
     async def _build_search_document(self, todo: TodoDB) -> dict:
         attachment_text = extract_text_from_path(todo.attachment_path)
@@ -159,7 +81,7 @@ class TodoService:
             "id": todo.id,
             "title": self._sanitize_search_text(todo.title),
             "details": self._sanitize_search_text(todo.details),
-            "tag": todo.tag,
+            "tags": [tag.name for tag in todo.tags],
             "source": todo.source,
             "created_at": todo.created_at.isoformat() if todo.created_at else None,
             "attachment_name": os.path.basename(todo.attachment_path) if todo.attachment_path else None,
@@ -202,16 +124,13 @@ class TodoService:
         texts: list[str] = []
         for todo in todos:
             texts.extend(self._collect_texts(todo))
-
         if not texts:
             return []
-
         analyzed_words = await self.search_repo.analyze_texts(texts)
         if analyzed_words:
             words = [word for word in analyzed_words if self._is_countable_word(word)]
         else:
             words = self._normalize_texts_locally(texts)
-
         counts = Counter(words)
         return [WordFrequency(word=word, count=count) for word, count in counts.most_common(limit)]
 
@@ -241,14 +160,14 @@ class TodoService:
         skip: int,
         creation_date_start: datetime | None,
         creation_date_end: datetime | None,
-        tag: Tags | None,
+        tag: str | None,
         query: str | None,
     ) -> tuple[list[TodoDB], int]:
         search_result = None
         if query or tag or creation_date_start or creation_date_end:
             search_result = await self.search_repo.search_todos(
                 query=query,
-                tag=tag.value if tag else None,
+                tags=[tag] if tag else None,
                 creation_date_start=creation_date_start,
                 creation_date_end=creation_date_end,
                 skip=skip,
@@ -279,20 +198,20 @@ class TodoService:
         *,
         title: str,
         details: str,
-        tag: Tags,
+        tags: list[str],
         source: TodoSource,
         count_todos: int,
         image: UploadFile | None,
     ) -> list[TodoDB]:
         if count_todos < 1:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="count_todos must be greater than 0")
+        tag_objects = await self.tag_repo.get_or_create_tags(tags)
         image_path, image_hash = await self._save_image(image)
         created_todos: list[TodoDB] = []
         for index in range(1, count_todos + 1):
             todo = TodoDB(
                 title=f"{title} {index}" if count_todos > 1 else title,
                 details=details,
-                tag=tag.value,
                 source=source.value,
                 image_path=image_path,
                 image_hash=image_hash,
@@ -301,8 +220,15 @@ class TodoService:
             created_todos.append(todo)
 
         await self.todo_repo.commit()
+
         for todo in created_todos:
-            await self._sync_to_search(todo)
+            await self.todo_repo.set_todo_tags(todo.id, tag_objects)
+
+        await self.todo_repo.commit()
+
+        for todo in created_todos:
+            fresh = await self.get_todo(todo.id)
+            await self._sync_to_search(fresh)
         return created_todos
 
     async def get_todo(self, todo_id: int) -> TodoDB:
@@ -321,7 +247,7 @@ class TodoService:
         title: str,
         details: str,
         completed: bool,
-        tag: Tags,
+        tags: list[str],
         created_at: datetime | None,
         image_path: str | None,
         existing_image: str | None,
@@ -329,6 +255,7 @@ class TodoService:
         attachment: UploadFile | None,
     ) -> TodoDB:
         todo = await self.get_todo(todo_id)
+        tag_objects = await self.tag_repo.get_or_create_tags(tags)
         next_image_path = image_path
         next_image_hash = todo.image_hash
 
@@ -353,7 +280,6 @@ class TodoService:
             "title": title,
             "details": details,
             "completed": completed,
-            "tag": tag.value,
             "created_at": created_at or todo.created_at,
             "completed_at": datetime.utcnow() if completed else None,
             "image_path": next_image_path,
@@ -362,6 +288,7 @@ class TodoService:
             "attachment_path": next_attachment_path,
         }
         await self.todo_repo.update_todo(todo_id, data)
+        await self.todo_repo.set_todo_tags(todo_id, tag_objects)
         await self.todo_repo.commit()
         updated_todo = await self.get_todo(todo_id)
         await self._sync_to_search(updated_todo)
@@ -418,6 +345,8 @@ class TodoService:
         imported_rows = import_todos(import_path)
 
         for row in imported_rows:
+            tags = _parse_tags(row.tag)
+            tag_objects = await self.tag_repo.get_or_create_tags(tags)
             existing = await self.todo_repo.get_todo(row.id) if row.id else None
             if existing:
                 await self.todo_repo.update_todo(
@@ -426,7 +355,6 @@ class TodoService:
                         "title": row.title,
                         "details": row.details,
                         "completed": row.completed,
-                        "tag": row.tag,
                         "created_at": row.created_at or existing.created_at,
                         "completed_at": row.completed_at,
                         "source": row.source,
@@ -435,8 +363,10 @@ class TodoService:
                         "attachment_path": row.attachment_path,
                     },
                 )
+                await self.todo_repo.set_todo_tags(existing.id, tag_objects)
                 await self.todo_repo.commit()
-                await self._sync_to_search(await self.get_todo(existing.id))
+                fresh = await self.get_todo(existing.id)
+                await self._sync_to_search(fresh)
                 continue
 
             todo = TodoDB(
@@ -444,7 +374,6 @@ class TodoService:
                 title=row.title,
                 details=row.details,
                 completed=row.completed,
-                tag=row.tag,
                 created_at=row.created_at or datetime.utcnow(),
                 completed_at=row.completed_at,
                 source=row.source,
@@ -454,7 +383,10 @@ class TodoService:
             )
             await self.todo_repo.add_todo(todo)
             await self.todo_repo.commit()
-            await self._sync_to_search(todo)
+            await self.todo_repo.set_todo_tags(todo.id, tag_objects)
+            await self.todo_repo.commit()
+            fresh = await self.get_todo(todo.id)
+            await self._sync_to_search(fresh)
 
     async def import_issues(self, url: str, token: str) -> None:
         todos = get_todos_by_issues(url, token)
@@ -463,23 +395,31 @@ class TodoService:
                 title=row.title,
                 details=row.details,
                 completed=row.completed,
-                tag=row.tag,
                 created_at=row.created_at or datetime.utcnow(),
                 completed_at=row.completed_at,
                 source=row.source,
             )
             await self.todo_repo.add_todo(todo)
             await self.todo_repo.commit()
-            await self._sync_to_search(todo)
+            fresh = await self.get_todo(todo.id)
+            await self._sync_to_search(fresh)
 
-    async def shuffle_tags(self) -> None:
+    async def shuffle_tags(self, available_tags: list[TagDB]) -> None:
+        if not available_tags:
+            return
         todos = await self.todo_repo.get_all_todos()
-        tags = [tag.value for tag in Tags]
         for index, todo in enumerate(todos):
-            next_tag = tags[index % len(tags)]
-            await self.todo_repo.update_todo(todo.id, {"tag": next_tag})
-            await self.todo_repo.commit()
-            await self._sync_to_search(await self.get_todo(todo.id))
+            next_tag = available_tags[index % len(available_tags)]
+            await self.todo_repo.set_todo_tags(todo.id, [next_tag])
+
+        await self.todo_repo.commit()
+
+        for todo in todos:
+            fresh = await self.get_todo(todo.id)
+            await self._sync_to_search(fresh)
+
+    async def get_all_image_paths(self) -> list[str]:
+        return await self.todo_repo.get_all_image_paths()
 
     async def get_import_logs(self) -> list[str]:
         if not os.path.exists(settings.IMPORTS_DIR):

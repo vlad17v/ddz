@@ -2,7 +2,6 @@
 
 {% block content %}
 
-
 <form id="todoForm" class="d-flex flex-column gap-2">
     <div class="form-floating">
         <input minlength="3" maxlength="200" type="text" class="form-control" id="title" name="title"
@@ -15,14 +14,12 @@
         <label for="details">Введите описание задач</label>
     </div>
 
-    <div class="form-floating">
-        <select class="form-select" name="tag" id="tag">
-            <option>Тип задачи:</option>
-            <option value="Учёба">Учёба</option>
-            <option value="Личное">Личное</option>
-            <option selected value="Планы">Планы</option>
-        </select>
-        <label for="tag">Тип задачи:</label>
+    <div class="form-group">
+        <label for="tags-input">Теги (через запятую):</label>
+        <input type="text" class="form-control" id="tags-input" name="tags"
+               placeholder="Введите теги через запятую" autocomplete="off">
+        <datalist id="tags-datalist"></datalist>
+        <div id="tags-chips" class="d-flex flex-wrap gap-1 mt-1"></div>
     </div>
 
     <div class="form-floating">
@@ -40,8 +37,50 @@
 </form>
 
 <script>
+    const tagsInput = document.getElementById('tags-input');
+    const tagsDatalist = document.getElementById('tags-datalist');
+    const tagsChips = document.getElementById('tags-chips');
+    let debounceTimer;
+
+    tagsInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const value = this.value;
+        const parts = value.split(',');
+        const currentTag = parts[parts.length - 1].trim();
+        if (currentTag.length < 1) {
+            tagsDatalist.innerHTML = '';
+            return;
+        }
+        debounceTimer = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/tags/suggest/?q=${encodeURIComponent(currentTag)}`);
+                const suggestions = await resp.json();
+                const prefix = parts.slice(0, -1).join(',');
+                tagsDatalist.innerHTML = '';
+                suggestions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = (prefix ? prefix + ', ' : '') + s;
+                    tagsDatalist.appendChild(opt);
+                });
+                tagsInput.setAttribute('list', 'tags-datalist');
+            } catch (e) {}
+        }, 300);
+
+        renderChips(value);
+    });
+
+    function renderChips(value) {
+        tagsChips.innerHTML = '';
+        value.split(',').map(t => t.trim()).filter(Boolean).forEach(tag => {
+            const chip = document.createElement('span');
+            chip.className = 'badge bg-secondary';
+            chip.textContent = tag;
+            tagsChips.appendChild(chip);
+        });
+    }
+
     document.getElementById('todoForm').addEventListener('submit', function (e) {
-    e.preventDefault();
+        e.preventDefault();
 
         const formData = new FormData(this);
         if (!formData.get('count_todos')) {
@@ -54,25 +93,23 @@
             body: formData
         })
                 .then(res => {
-                    console.log(res.status)
-
                     if (res.status === 401) {
                         window.location.href = '/todo/401/';
-                        return
+                        return;
                     }
-                    return res.json()
+                    return res.json();
                 })
                 .then(data => {
-                    if (data == null){
+                    if (data == null) {
                         window.location.href = '/todo/401/';
                     } else {
-                        console.log('Успешно:', data);
                         window.location.href = '/todo/home/';
                     }
                 })
                 .catch(error => console.error('Ошибка:', error));
 
         this.reset();
+        tagsChips.innerHTML = '';
     });
 </script>
 
